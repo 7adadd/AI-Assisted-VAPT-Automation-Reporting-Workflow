@@ -1,0 +1,10 @@
+GET /?message={{7*7}} HTTP/1.1
+Host: lab-shop.local
+User-Agent: Lab-Analyzer/1.0
+
+=== RESPONSE ===
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Server: Werkzeug/3.1.9 Python/3.14.6
+
+<div class="notification">Greeting rendered: 49</div>

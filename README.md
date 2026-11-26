@@ -56,8 +56,11 @@ AI-Assisted-VAPT-Automation-Reporting-Workflow/
 |    |-- generated/                    # Validated AI-generated PS1, Python, Frida JS
 |    `-- reporting/                    # calc_cvss.py, diff_draft.py, PDF/DOCX/PPTX builders
 |-- deliverables/                     # Final evaluated Week 2–4 reports, SOP & slides
+|-- app/                              # Localhost-only FastAPI Web GUI (127.0.0.1:8000)
+|-- run_gui.py                        # One-command GUI launcher
+|-- tests/                            # API smoke tests & Playwright UI checks
 |-- templates/                        # Report & validation-log skeletons
-|-- lab/                              # Benchmark results & isolated AD lab dataset
+|-- lab/                              # Benchmarks, AD dataset & DVWA/PortSwigger samples
 |-- evidence/                         # Raw scans, captures & validation log (gitignored)
 `-- reports/                          # Built docs & scratch outputs (gitignored)
 ```
@@ -111,7 +114,20 @@ python scripts/reporting/calc_cvss.py "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/
 python scripts/reporting/build_vapt_report.py deliverables/vapt-report-human-edited.md \
   --pdf deliverables/VAPT-Report-Human-Edited.pdf --docx deliverables/VAPT-Report-Human-Edited.docx \
   --title "VAPT Assessment Report — Human-Edited Final"
+
+# 5. Launch the Localhost Web GUI (5-Tab Studio @ http://127.0.0.1:8000)
+python run_gui.py
 ```
+
+## Web GUI Studio (`run_gui.py`)
+
+A lightweight, 100% offline FastAPI + Dark UI dashboard bound strictly to `127.0.0.1:8000` (with bundled Chart.js & Cytoscape.js and zero external network calls):
+
+1. **Command Center:** Live Ollama status, accuracy/hallucination KPIs, Chart.js benchmark charts, and the 12-pattern DVWA + PortSwigger passive challenge matrix.
+2. **Artifact Analyzer:** Upload or select Nmap XML, Enum logs, BloodHound JSON, HTTP requests, or jadx Java/Manifest files; inspect `[source:line]` ingested context; run any of the 23 prompt templates locally.
+3. **Cross-Model Hallucination Arena:** Side-by-side `qwen2.5:3b` vs `llama3.2:3b` comparison with one-click human validation buttons (`Verified`, `Corrected`, `Hallucination`) logging directly to `deliverables/validation-log.md`.
+4. **AD Attack Path Graph:** Interactive Cytoscape.js BloodHound graph of `LAB.LOCAL` with deterministic BFS shortest attack paths highlighted.
+5. **Report & Diff Studio:** Live CVSS 3.1 calculator, AI Draft vs. Human-Edited diff viewer, live DVWA PoC screenshot gallery, and one-click PDF/DOCX/PPTX exports.
 
 ## Ethics & Legal Notice
 

@@ -1,0 +1,13 @@
+GET /my-account?id=carlos HTTP/1.1
+Host: lab-shop.local
+Cookie: session=<REDACTED_WIENER_USER_SESSION>
+
+=== RESPONSE ===
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "username": "carlos",
+  "email": "carlos@lab-shop.local",
+  "apiKey": "DEMO_LAB_API_KEY_CARLOS_98765"
+}

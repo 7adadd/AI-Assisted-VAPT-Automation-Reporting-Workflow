@@ -1,0 +1,202 @@
+{
+  "summary": {
+    "total": 12,
+    "passed": 12,
+    "pass_rate_pct": 100.0,
+    "model": "qwen2.5:3b",
+    "template": "W1"
+  },
+  "results": [
+    {
+      "id": "dvwa-01",
+      "suite": "DVWA",
+      "name": "SQL Injection (UNION)",
+      "expected_vuln": "SQL Injection",
+      "target_param": "id",
+      "matched_keywords": [
+        "sql",
+        "id"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 56.96,
+      "total_s": 14.27,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| `id` | Parameter used to specify the ID of the vulnerability to test. The value `1%27+UNION+SELECT+user%2Cpassword+FROM+users--+` is a SQL injection payload. |\n| `Submit` | Submit button to trigger the SQL injection payload. |\n\n### Authentication/Session Mechanism\n- Cookie: `PHPSESSID=<REDACTED_LAB_SESSION>` i"
+    },
+    {
+      "id": "dvwa-02",
+      "suite": "DVWA",
+      "name": "Reflected XSS",
+      "expected_vuln": "Cross-Site Scripting",
+      "target_param": "name",
+      "matched_keywords": [
+        "xss",
+        "name"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 68.23,
+      "total_s": 4.17,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| `name` | Contains a malicious XSS payload (`[http:line 1]`) |\n\n| Cookie | Contains session ID (`[http:line 3]`), security level (`[http:line 4]`). |\n\n### Authentication/Session Mechanism\n- **Session ID**: `PHPSESSID=<REDACTED_LAB_SESSION>` (`[http:line 4]`)\n- **Security Level**: `security=low` (`[http:line 4]`"
+    },
+    {
+      "id": "dvwa-03",
+      "suite": "DVWA",
+      "name": "Stored XSS",
+      "expected_vuln": "Cross-Site Scripting",
+      "target_param": "mtxMessage",
+      "matched_keywords": [
+        "xss",
+        "mtxmessage"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 68.92,
+      "total_s": 4.69,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| txtName | Form field for guestbook name |\n| mtxMessage | Form field for guestbook message, containing XSS payload |\n| btnSign | Submit button for guestbook submission |\n\n### Authentication/Session Mechanism\n- Cookie: `PHPSESSID=<REDACTED_LAB_SESSION>; security=low`\n\n### Top 3 Candidate Vulnerability Classes to"
+    },
+    {
+      "id": "dvwa-04",
+      "suite": "DVWA",
+      "name": "OS Command Injection",
+      "expected_vuln": "Command Injection",
+      "target_param": "ip",
+      "matched_keywords": [
+        "command",
+        "ip"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 67.77,
+      "total_s": 7.18,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| ip | The target IP address to send a ping to. |\n| id | Placeholder for a potential user ID. |\n| Submit | The button to submit the form. |\n\n### Authentication/Session Mechanism\n- **Cookie:** `PHPSESSID=<REDACTED_LAB_SESSION>; security=low`\n  - **Line:** [http:line 3]\n\n### Top 3 Candidate Vulnerability Classes t"
+    },
+    {
+      "id": "dvwa-05",
+      "suite": "DVWA",
+      "name": "Local File Inclusion",
+      "expected_vuln": "Path Traversal / File Inclusion",
+      "target_param": "page",
+      "matched_keywords": [
+        "traversal",
+        "page"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 65.7,
+      "total_s": 5.2,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| page | Represents the target file to be accessed. In this case, it points to the `/etc/passwd` file, which contains system user information. |\n| security | Indicates the security level of the PHP session. The `low` setting suggests that the application is configured to allow session hijacking and session fixat"
+    },
+    {
+      "id": "dvwa-06",
+      "suite": "DVWA",
+      "name": "CSRF Password Change",
+      "expected_vuln": "Cross-Site Request Forgery",
+      "target_param": "password_new",
+      "matched_keywords": [
+        "csrf",
+        "password_new"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 67.29,
+      "total_s": 7.79,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| password_new | New password for the account |\n| password_conf | Confirmation of the new password |\n| Change | Button to change the password |\n\n### Authentication/Session Mechanism\n- Cookie: `PHPSESSID=<REDACTED_LAB_SESSION>` indicates the use of a session cookie for authentication.\n- `security=low` in the cook"
+    },
+    {
+      "id": "ps-01",
+      "suite": "PortSwigger",
+      "name": "SSRF Stock Check",
+      "expected_vuln": "Server-Side Request Forgery (SSRF)",
+      "target_param": "stockApi",
+      "matched_keywords": [
+        "stockapi"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 68.39,
+      "total_s": 5.04,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| `stockApi` | Internal API endpoint for admin panel |\n| `session` | Session cookie for authentication |\n\n### Authentication/Session Mechanism\n- `Cookie: session=<REDACTED_LAB_SESSION>`: Indicates a session cookie is used for authentication.\n\n### Top 3 Candidate Vulnerability Classes to Test\n1. **[http:line 6] s"
+    },
+    {
+      "id": "ps-02",
+      "suite": "PortSwigger",
+      "name": "XXE External Entity",
+      "expected_vuln": "XML External Entity (XXE)",
+      "target_param": "productId",
+      "matched_keywords": [
+        "xxe",
+        "xml",
+        "entity"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 70.15,
+      "total_s": 5.18,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| productId | Placeholder for product ID, likely intended to be replaced with an XML entity reference. |\n| StoreId | Fixed value, indicating a store ID. |\n\n| Cookie | Contains session information, indicating authentication or session management. |\n\n### Authentication/Session Mechanism\n- [http:line 3] `Cookie: se"
+    },
+    {
+      "id": "ps-03",
+      "suite": "PortSwigger",
+      "name": "SSTI Template Injection",
+      "expected_vuln": "Server-Side Template Injection (SSTI)",
+      "target_param": "message",
+      "matched_keywords": [
+        "template",
+        "message"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 69.96,
+      "total_s": 4.64,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| `message` | The parameter value is evaluated to `49` (7*7) and displayed. This suggests the server is vulnerable to a client-side template injection (CTI) attack. |\n\n| Authentication/Session | No authentication or session-related headers or cookies are present in the request. |\n\n### Top 3 Candidate Vulnerabili"
+    },
+    {
+      "id": "ps-04",
+      "suite": "PortSwigger",
+      "name": "IDOR Account Exposure",
+      "expected_vuln": "Insecure Direct Object Reference (IDOR)",
+      "target_param": "id",
+      "matched_keywords": [
+        "id"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 70.01,
+      "total_s": 4.98,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| `id` | Query parameter, likely identifying the user account. |\n| `username` | JSON response field, likely corresponding to the `id` parameter. |\n| `email` | JSON response field, likely corresponding to the `id` parameter. |\n| `apiKey` | JSON response field, likely corresponding to the `id` parameter. |\n\n**Auth"
+    },
+    {
+      "id": "ps-05",
+      "suite": "PortSwigger",
+      "name": "JWT Unverified Signature (alg=none)",
+      "expected_vuln": "Broken Authentication / JWT Flaw",
+      "target_param": "session",
+      "matched_keywords": [
+        "jwt",
+        "session"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 70.2,
+      "total_s": 3.64,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| `session` | Cookie containing JWT with user information, specifically indicating the authenticated user as `administrator` |\n\n### Authentication/Session Mechanism\n- **Cookie**: `session=eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJwb3J0d2lnZ2VyIiwic3ViIjoiYWRtaW5pc3RyYXRvciIsImV4cCI6MTkwMDAwMDAwMH0.`\n\n### To"
+    },
+    {
+      "id": "ps-06",
+      "suite": "PortSwigger",
+      "name": "Error-Based SQLi in Cookie",
+      "expected_vuln": "SQL Injection",
+      "target_param": "TrackingId",
+      "matched_keywords": [
+        "sql",
+        "trackingid"
+      ],
+      "has_citation": true,
+      "passed": true,
+      "gen_tps": 70.45,
+      "total_s": 4.65,
+      "output_excerpt": "```markdown\n| Parameter | Role |\n| --- | --- |\n| category | Query parameter to filter the results of the `/filter` endpoint. |\n\n| Authentication/Session | \n| --- |\n| Cookie: `TrackingId` - Contains a SQL injection payload to retrieve the username of the first user in the `users` table. The payload is constructed to use a `SELECT` statement to retrieve the us"
+    }
+  ]
+}

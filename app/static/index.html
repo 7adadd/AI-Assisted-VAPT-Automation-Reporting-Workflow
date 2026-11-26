@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI-Assisted VAPT Automation Studio — DEPI Project 5</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script src="/static/vendor/chart.umd.min.js"></script>
+  <script src="/static/vendor/cytoscape.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>AI-Assisted VAPT Automation Studio</h1>
+      <div class="sub">DEPI Graduation Program &middot; Project 5 &middot; Passive Analysis, Validation &amp; Reporting</div>
+    </div>
+    <div class="badges">
+      <span class="badge lock" id="privacy-badge">127.0.0.1 Local-Only</span>
+      <span class="badge warn" id="ollama-badge">Checking Ollama...</span>
+      <span class="badge" id="models-badge">Models: —</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" data-tab="tab-dashboard">1. Command Center</button>
+    <button class="tab-btn" data-tab="tab-analyzer">2. Artifact Analyzer</button>
+    <button class="tab-btn" data-tab="tab-arena">3. Cross-Model Arena</button>
+    <button class="tab-btn" data-tab="tab-graph">4. AD Attack Path Graph</button>
+    <button class="tab-btn" data-tab="tab-studio">5. Report &amp; Diff Studio</button>
+  </nav>
+
+  <main class="container">
+    <!-- TAB 1: COMMAND CENTER -->
+    <section id="tab-dashboard" class="tab-panel active">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="label">Prompt Templates</div>
+          <div class="value" id="kpi-prompts">—</div>
+          <div class="hint">5 VAPT Phases (7-field + Grounding)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="label">DVWA &amp; PortSwigger Suite</div>
+          <div class="value" id="kpi-challenges">—</div>
+          <div class="hint" id="kpi-challenge-eval">Passive HTTP Challenge Artifacts</div>
+        </div>
+        <div class="kpi-card">
+          <div class="label">Strict Verified Accuracy</div>
+          <div class="value" id="kpi-accuracy">—</div>
+          <div class="hint" id="kpi-usable">Usable after QA: —</div>
+        </div>
+        <div class="kpi-card">
+          <div class="label">Hallucination Rate</div>
+          <div class="value" id="kpi-hallucination">—</div>
+          <div class="hint" id="kpi-total-claims">Logged claims: —</div>
+        </div>
+        <div class="kpi-card">
+          <div class="label">Validated Report Findings</div>
+          <div class="value" id="kpi-findings">9</div>
+          <div class="hint">1 Critical · 4 High · 4 Medium</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Generation Speed (tokens/sec) — Qwen 2.5 vs Llama 3.2</h2>
+          <div class="chart-box"><canvas id="chart-tps"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>Grounding Adherence Score (out of 5) per Task</h2>
+          <div class="chart-box"><canvas id="chart-score"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>
+          <span>DVWA &amp; PortSwigger Challenge Suite (Passive Artifact Analysis)</span>
+          <span class="muted" id="challenge-eval-summary">Select any challenge to inspect with local Ollama</span>
+        </h2>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Suite</th>
+                <th>Challenge</th>
+                <th>Target Param / Cookie</th>
+                <th>Expected Class</th>
+                <th>Local AI Evaluation (qwen2.5:3b)</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="challenges-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: ARTIFACT ANALYZER -->
+    <section id="tab-analyzer" class="tab-panel">
+      <div class="card">
+        <h2>Passive Artifact Analyzer (Ingest &rarr; Grounded Prompt &rarr; Local LLM)</h2>
+        <div class="form-row">
+          <label class="field">
+            Repo Sample / Challenge
+            <select id="an-sample"></select>
+          </label>
+          <label class="field">
+            Or Upload Local Artifact (.xml, .json, .http, .txt, .java)
+            <input type="file" id="an-file" />
+          </label>
+          <label class="field">
+            Ingest Adapter Type
+            <select id="an-atype">
+              <option value="auto">Auto-detect</option>
+              <option value="http">HTTP / Burp (burp_to_context)</option>
+              <option value="nmap">Nmap XML (nmap_to_context)</option>
+              <option value="enum">Enum4linux / Banner (enum_to_context)</option>
+              <option value="bloodhound">BloodHound JSON (bloodhound_to_context)</option>
+              <option value="mobile">Mobile Java / Manifest (mobile_to_context)</option>
+              <option value="raw">Raw Text</option>
+            </select>
+          </label>
+        </div>
+        <div class="form-row">
+          <label class="field">
+            Prompt Template (23 Templates)
+            <select id="an-template"></select>
+          </label>
+          <label class="field">
+            Local Ollama Model
+            <select id="an-model">
+              <option value="qwen2.5:3b">qwen2.5:3b (Primary — 69.3 tok/s)</option>
+              <option value="llama3.2:3b">llama3.2:3b (Secondary — 39.3 tok/s)</option>
+            </select>
+          </label>
+        </div>
+        <label class="field" style="margin-bottom:12px;">
+          Or Paste Raw Tool Output / HTTP Request
+          <textarea id="an-raw" placeholder="Optional: paste raw Nmap XML, HTTP request/response, ACL dump, or Java snippet..."></textarea>
+        </label>
+        <div class="btn-row">
+          <button class="btn primary" id="an-run-btn">Run Grounded Analysis</button>
+          <span class="muted" id="an-status">Ready (100% offline inference on 127.0.0.1:11434)</span>
+        </div>
+      </div>
+
+      <div class="card" id="an-result-card">
+        <h2>
+          <span>Analysis Output</span>
+          <span class="muted" id="an-telemetry">—</span>
+        </h2>
+        <details style="margin-bottom:10px;">
+          <summary class="muted" style="cursor:pointer;">Inspect Ingested Citation-Tagged Context (&lt;DATA&gt;)</summary>
+          <pre id="an-ingested">Run an analysis to view ingested [source:line] context.</pre>
+        </details>
+        <div class="md-out" id="an-output">Select a sample or upload a local artifact and click <strong>Run Grounded Analysis</strong>.</div>
+      </div>
+    </section>
+
+    <!-- TAB 3: CROSS-MODEL HALLUCINATION ARENA -->
+    <section id="tab-arena" class="tab-panel">
+      <div class="card">
+        <h2>Cross-Model Hallucination Arena (L3 Dual-Model Verification)</h2>
+        <div class="form-row">
+          <label class="field">
+            Sample / Challenge
+            <select id="ar-sample"></select>
+          </label>
+          <label class="field">
+            Prompt Template
+            <select id="ar-template"></select>
+          </label>
+          <label class="field">
+            Ingest Adapter
+            <select id="ar-atype">
+              <option value="auto">Auto-detect</option>
+              <option value="http">HTTP / Burp</option>
+              <option value="nmap">Nmap XML</option>
+              <option value="enum">Enum / Banner</option>
+              <option value="bloodhound">BloodHound JSON</option>
+              <option value="mobile">Mobile Java / Manifest</option>
+            </select>
+          </label>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" id="ar-run-btn">Run Side-by-Side Cross-Check (Qwen vs Llama)</button>
+          <span class="muted" id="ar-status">Runs both local models sequentially for discrepancy detection</span>
+        </div>
+      </div>
+
+      <div class="arena-grid">
+        <div class="card">
+          <h2><span>qwen2.5:3b (Primary)</span><span class="muted" id="ar-qwen-tel">—</span></h2>
+          <div class="md-out" id="ar-qwen-out">Run cross-check to compare output...</div>
+        </div>
+        <div class="card">
+          <h2><span>llama3.2:3b (Cross-Check)</span><span class="muted" id="ar-llama-tel">—</span></h2>
+          <div class="md-out" id="ar-llama-out">Run cross-check to compare output...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Human Validation Gate (Log directly to deliverables/validation-log.md)</h2>
+        <div class="form-row">
+          <label class="field">
+            Target Model Evaluated
+            <select id="val-model">
+              <option value="qwen2.5:3b">qwen2.5:3b</option>
+              <option value="llama3.2:3b">llama3.2:3b</option>
+              <option value="Both (Cross-Check)">Both (Cross-Check)</option>
+            </select>
+          </label>
+          <label class="field">
+            Claim / Observation Summary
+            <input type="text" id="val-claim" placeholder="e.g., Identified SSRF in stockApi [http:line 6]" />
+          </label>
+          <label class="field">
+            Human Verification Note
+            <input type="text" id="val-note" placeholder="e.g., Confirmed line 6 in ps-01-ssrf-stock-check.http" />
+          </label>
+        </div>
+        <div class="btn-row">
+          <button class="btn ok" data-verdict="Verified">Mark Verified</button>
+          <button class="btn warn" data-verdict="Corrected">Mark Corrected</button>
+          <button class="btn err" data-verdict="Hallucination">Flag Hallucination</button>
+          <span class="muted" id="val-status"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span>Validation Log Audit Table (<span id="val-count">0</span> entries)</span></h2>
+        <div style="overflow-x:auto; max-height:320px; overflow-y:auto;">
+          <table class="data-table">
+            <thead>
+              <tr><th>ID</th><th>Phase</th><th>AI Claim</th><th>Model</th><th>Result</th><th>Verdict</th></tr>
+            </thead>
+            <tbody id="val-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: AD ATTACK PATH GRAPH -->
+    <section id="tab-graph" class="tab-panel">
+      <div class="card">
+        <h2>
+          <span>LAB.LOCAL BloodHound Attack Path Graph (Deterministic BFS Ground Truth)</span>
+          <span class="btn-row">
+            <button class="btn sm primary" id="graph-all-paths">Highlight All Attack Paths</button>
+            <button class="btn sm" id="graph-fit">Reset View</button>
+          </span>
+        </h2>
+        <div class="graph-wrap">
+          <div id="cy"></div>
+          <div class="card" style="margin:0;">
+            <h2>Node / Edge Inspector</h2>
+            <div id="graph-inspector" class="muted">
+              Click any node or edge in the BloodHound graph to inspect its AD properties, SPN / AS-REP flags, and verified BFS shortest path to Domain Admins.
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
+            <h2 style="font-size:13px;">Verified BFS Shortest Paths</h2>
+            <div id="graph-paths-list" class="muted"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: REPORT & DIFF STUDIO -->
+    <section id="tab-studio" class="tab-panel">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Live CVSS v3.1 Base Score Calculator (calc_cvss.py)</h2>
+          <div class="form-row">
+            <label class="field">Attack Vector (AV)
+              <select id="cvss-av" class="cvss-sel"><option value="N">Network (N)</option><option value="A">Adjacent (A)</option><option value="L">Local (L)</option><option value="P">Physical (P)</option></select>
+            </label>
+            <label class="field">Attack Complexity (AC)
+              <select id="cvss-ac" class="cvss-sel"><option value="L">Low (L)</option><option value="H">High (H)</option></select>
+            </label>
+            <label class="field">Privileges Required (PR)
+              <select id="cvss-pr" class="cvss-sel"><option value="N">None (N)</option><option value="L">Low (L)</option><option value="H">High (H)</option></select>
+            </label>
+            <label class="field">User Interaction (UI)
+              <select id="cvss-ui" class="cvss-sel"><option value="N">None (N)</option><option value="R">Required (R)</option></select>
+            </label>
+            <label class="field">Scope (S)
+              <select id="cvss-s" class="cvss-sel"><option value="U">Unchanged (U)</option><option value="C">Changed (C)</option></select>
+            </label>
+            <label class="field">Confidentiality (C)
+              <select id="cvss-c" class="cvss-sel"><option value="H">High (H)</option><option value="L">Low (L)</option><option value="N">None (N)</option></select>
+            </label>
+            <label class="field">Integrity (I)
+              <select id="cvss-i" class="cvss-sel"><option value="H">High (H)</option><option value="L">Low (L)</option><option value="N">None (N)</option></select>
+            </label>
+            <label class="field">Availability (A)
+              <select id="cvss-a" class="cvss-sel"><option value="H">High (H)</option><option value="L">Low (L)</option><option value="N">None (N)</option></select>
+            </label>
+          </div>
+          <div class="btn-row" style="margin-bottom:10px;">
+            <input type="text" id="cvss-vector" style="flex:1;font-family:var(--mono);" value="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H" />
+            <button class="btn primary" id="cvss-calc-btn">Compute</button>
+          </div>
+          <div id="cvss-result" class="badge ok">9.8 Critical</div>
+        </div>
+
+        <div class="card">
+          <h2>Export Deliverables Studio (PDF / DOCX / PPTX)</h2>
+          <p class="muted">Re-render and download branded DEPI Project 5 reports directly from verified Markdown &amp; telemetry.</p>
+          <div class="btn-row" style="margin-bottom:14px;">
+            <button class="btn primary" data-export="human_report">Export Final Report (PDF + DOCX)</button>
+            <button class="btn" data-export="ai_draft">Export AI Draft (PDF)</button>
+            <button class="btn" data-export="sop">Export Reusable SOP (PDF + DOCX)</button>
+            <button class="btn" data-export="presentation">Export Defense Deck (PPTX)</button>
+          </div>
+          <div id="export-status" class="muted">Ready. Existing deliverables are also available below:</div>
+          <ul id="export-links" style="margin-top:10px;padding-left:18px;font-size:13px;">
+            <li><a href="/deliverables/VAPT-Report-Human-Edited.pdf" target="_blank" style="color:var(--cyan);">VAPT-Report-Human-Edited.pdf</a> &middot; <a href="/deliverables/VAPT-Report-Human-Edited.docx" target="_blank" style="color:var(--cyan);">DOCX</a></li>
+            <li><a href="/deliverables/VAPT-Report-AI-Draft.pdf" target="_blank" style="color:var(--cyan);">VAPT-Report-AI-Draft.pdf</a></li>
+            <li><a href="/deliverables/REUSABLE-VAPT-AI-SOP.pdf" target="_blank" style="color:var(--cyan);">REUSABLE-VAPT-AI-SOP.pdf</a></li>
+            <li><a href="/deliverables/DEPI-Project5-Presentation.pptx" target="_blank" style="color:var(--cyan);">DEPI-Project5-Presentation.pptx</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>
+          <span>AI Draft vs. Human-Edited Diff Viewer (diff_draft.py)</span>
+          <span class="muted" id="diff-stats">—</span>
+        </h2>
+        <div class="diff-box" id="diff-box">Loading diff...</div>
+      </div>
+
+      <div class="card">
+        <h2>Live DVWA Proof-of-Concept Screenshots Gallery</h2>
+        <div class="gallery" id="poc-gallery"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="img-modal"><img id="img-modal-src" src="" alt="PoC Preview" /></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

