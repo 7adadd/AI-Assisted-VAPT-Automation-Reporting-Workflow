@@ -1,0 +1,7 @@
+[1] Object=CN=svc-backup,CN=Users,DC=lab,DC=local | IdentityReference=LAB\m.ali | ActiveDirectoryRights=GenericAll | AccessControlType=Allow
+[2] Object=CN=Domain Admins,CN=Users,DC=lab,DC=local | IdentityReference=LAB\IT-Admins | ActiveDirectoryRights=WriteDacl | AccessControlType=Allow
+[3] Object=CN=svc-sync,CN=Users,DC=lab,DC=local | IdentityReference=LAB\j.smith | ActiveDirectoryRights=ExtendedRight (User-Force-Change-Password) | AccessControlType=Allow
+[4] Object=DC=lab,DC=local | IdentityReference=LAB\svc-sync | ActiveDirectoryRights=ExtendedRight (DS-Replication-Get-Changes-All) | AccessControlType=Allow
+[5] Object=DC=lab,DC=local | IdentityReference=LAB\svc-sync | ActiveDirectoryRights=ExtendedRight (DS-Replication-Get-Changes) | AccessControlType=Allow
+[6] Object=CN=Users,DC=lab,DC=local | IdentityReference=LAB\s.nabil | ActiveDirectoryRights=ReadProperty | AccessControlType=Allow
+[7] Object=CN=Policies,CN=System,DC=lab,DC=local | IdentityReference=LAB\HELP-DESK | ActiveDirectoryRights=ReadProperty, GenericRead | AccessControlType=Allow

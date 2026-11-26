@@ -1,0 +1,27 @@
+Starting enum4linux-ng against 127.0.0.1 (LAB.LOCAL)
+[+] Domain Name: LAB
+[+] Domain Sid: S-1-5-21-2948102931-1847291042-884920112
+[+] Password Policy:
+    Minimum password length: 7
+    Password complexity: Enabled
+    Account lockout threshold: None (0 - brute-force risk)
+    Max password age: 42 days
+[+] Users enumerated via RPC/LDAP:
+    Administrator | desc: Built-in account for administering the domain
+    m.ali         | desc: Junior IT support
+    svc-backup    | desc: Backup service account (SPN: MSSQLSvc/db01.lab.local:1433)
+    j.smith       | desc: Legacy kiosk operator (DONT_REQ_PREAUTH)
+    svc-sync      | desc: Directory sync account
+    helpdesk01    | desc: TempPass2026! - reset after onboarding
+    s.nabil       | desc: HR Specialist
+[+] Groups enumerated:
+    Domain Admins (rid: 512) -> members: Administrator
+    IT-Admins (rid: 1104) -> members: svc-backup
+    HELP-DESK (rid: 1105) -> members: helpdesk01
+[+] Shares enumerated on DC01.LAB.LOCAL:
+    ADMIN$    Disk  Remote Admin        (Access: DENIED)
+    C$        Disk  Default share       (Access: DENIED)
+    IPC$      IPC   Remote IPC          (Access: READ)
+    NETLOGON  Disk  Logon server share  (Access: READ)
+    SYSVOL    Disk  Logon server share  (Access: READ)
+    DeptDocs  Disk  Departmental files  (Access: READ/WRITE for Authenticated Users)

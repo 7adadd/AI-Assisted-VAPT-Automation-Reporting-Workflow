@@ -1,0 +1,43 @@
+# --- Lab raw artifacts & large binaries: never commit ---
+evidence/
+!evidence/.gitkeep
+reports/
+!reports/.gitkeep
+
+# Mobile binaries / decompiler downloads
+lab/mobile/*.apk
+lab/mobile/*.zip
+lab/mobile/jadx/
+
+# Large binaries / VM files
+*.ova
+*.ovf
+*.vmdk
+*.vmem
+*.vdi
+*.qcow2
+*.iso
+*.apk.bak
+models/
+lab/snapshots/
+
+# Environment & secrets
+.env
+.env.*
+*.key
+*.pem
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/

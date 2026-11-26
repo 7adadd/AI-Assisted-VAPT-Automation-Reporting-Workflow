@@ -1,0 +1,26 @@
+{
+  "domain": "LAB.LOCAL",
+  "nodes": [
+    {"id": "DOMAIN ADMINS@LAB.LOCAL", "type": "Group", "highvalue": true},
+    {"id": "LAB.LOCAL", "type": "Domain", "highvalue": true},
+    {"id": "IT-ADMINS@LAB.LOCAL", "type": "Group", "highvalue": false},
+    {"id": "HELP-DESK@LAB.LOCAL", "type": "Group", "highvalue": false},
+    {"id": "m.ali@LAB.LOCAL", "type": "User", "highvalue": false, "description": "Junior IT support"},
+    {"id": "svc-backup@LAB.LOCAL", "type": "User", "highvalue": false, "kerberoastable": true, "spn": "MSSQLSvc/db01.lab.local:1433", "description": "Backup service account"},
+    {"id": "j.smith@LAB.LOCAL", "type": "User", "highvalue": false, "asrep_roastable": true, "description": "Legacy kiosk operator"},
+    {"id": "svc-sync@LAB.LOCAL", "type": "User", "highvalue": false, "description": "Directory sync account"},
+    {"id": "helpdesk01@LAB.LOCAL", "type": "User", "highvalue": false, "description": "TempPass2026! - reset after onboarding"},
+    {"id": "s.nabil@LAB.LOCAL", "type": "User", "highvalue": false, "description": "HR Specialist (no special privileges)"},
+    {"id": "DC01.LAB.LOCAL", "type": "Computer", "highvalue": true}
+  ],
+  "edges": [
+    {"id": "E01", "source": "m.ali@LAB.LOCAL", "right": "GenericAll", "target": "svc-backup@LAB.LOCAL", "is_acl": true},
+    {"id": "E02", "source": "svc-backup@LAB.LOCAL", "right": "MemberOf", "target": "IT-ADMINS@LAB.LOCAL", "is_acl": false},
+    {"id": "E03", "source": "IT-ADMINS@LAB.LOCAL", "right": "WriteDacl", "target": "DOMAIN ADMINS@LAB.LOCAL", "is_acl": true},
+    {"id": "E04", "source": "j.smith@LAB.LOCAL", "right": "ForceChangePassword", "target": "svc-sync@LAB.LOCAL", "is_acl": true},
+    {"id": "E05", "source": "svc-sync@LAB.LOCAL", "right": "GetChangesAll", "target": "LAB.LOCAL", "is_acl": true},
+    {"id": "E06", "source": "svc-sync@LAB.LOCAL", "right": "GetChanges", "target": "LAB.LOCAL", "is_acl": true},
+    {"id": "E07", "source": "helpdesk01@LAB.LOCAL", "right": "MemberOf", "target": "HELP-DESK@LAB.LOCAL", "is_acl": false},
+    {"id": "E08", "source": "HELP-DESK@LAB.LOCAL", "right": "ReadGPO", "target": "LAB.LOCAL", "is_acl": false}
+  ]
+}

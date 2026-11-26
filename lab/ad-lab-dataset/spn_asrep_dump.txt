@@ -1,0 +1,8 @@
+# SPN accounts (GetUserSPNs)
+ServicePrincipalName             Name        MemberOf                     PasswordLastSet
+MSSQLSvc/db01.lab.local:1433     svc-backup  CN=IT-Admins,DC=lab,DC=local 2025-04-11 09:14:22
+HTTP/intranet.lab.local          svc-web     CN=WebServices,DC=lab,DC=local 2026-01-09 14:22:10
+
+# AS-REP Roastable accounts (DONT_REQ_PREAUTH)
+SamAccountName  UserAccountControl                      Enabled  Notes
+j.smith         NORMAL_ACCOUNT, DONT_REQ_PREAUTH        True     Legacy kiosk operator
