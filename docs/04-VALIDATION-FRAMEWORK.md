@@ -9,7 +9,7 @@ This is the framework behind the program's required deliverables:
 
 > **An AI claim is not a finding.** A finding is an AI claim that survived validation.
 
-Every AI output that we intend to use (analysis, script, payload, report text) passes through the gate below and gets a row in the **Validation Log** (`evidence/validation-log.md`, gitignored; the *template and summary stats* are committed).
+Every AI output that we intend to use (analysis, script, report text) passes through the gate below and gets a row in the **Validation Log** (`deliverables/validation-log.md`). The API requires a local session token for writes; tests must use temporary fixtures and never modify the real log.
 
 ## 2. Validation levels
 
@@ -17,8 +17,8 @@ Every AI output that we intend to use (analysis, script, payload, report text) p
 |---|---|---|---|
 | L0 | Rejected | Claim contradicted by data or unverifiable → discarded, logged as hallucination | — |
 | L1 | **Data-verified** | Claim cites specific tool output; citation re-checked against the raw file | every factual claim |
-| L2 | **Lab-executed** | Command/script/payload actually ran in the lab; result captured as evidence | every executable output |
-| L3 | **Cross-model** | Second local model independently asked the same grounded question; answers compared | high-impact claims (attack paths, CVSS, "critical" findings) |
+| L2 | **Lab-executed** | A human-approved, bounded action actually ran in the authorized lab; result captured as evidence | only when safe, authorized, and necessary |
+| L3 | **Cross-model** | Second local model independently asked the same grounded question; answers compared; agreement is not ground truth | high-impact claims (attack paths, CVSS, "critical" findings) |
 | L4 | Peer review | A second human reviewed the final claim/report | Week 4 final report |
 
 Minimum acceptance: **L1 always, L2 for anything executable, L3 for high-impact, L4 for the final report.**
@@ -41,7 +41,7 @@ Verdict vocabulary: ✅ verified · ⚠️ partially correct (note exactly what 
 
 ## 4. Accuracy metrics (required for the review deliverable)
 
-At the end of each week compute and commit (numbers only, log stays local):
+At the end of each week compute from the reviewed log. The numbers below are an illustrative format/example, not a claim about the current run:
 
 ```markdown
 ## Week 2 — AI Accuracy Review

@@ -100,9 +100,9 @@ If the tray app shows "timed out waiting for server": kill the `ollama app` proc
 
 | Component | Minimum | Comfortable |
 |---|---|---|
-| RAM | 16 GB | 32 GB |
-| GPU | none (CPU inference) | NVIDIA ≥8 GB VRAM |
-| Free disk | 150 GB | 250 GB |
+| RAM | 16 GB (current machine) | 32 GB |
+| GPU | CPU fallback supported | NVIDIA GPU; current validation used RTX 3050 Ti Laptop (4 GB VRAM) |
+| Free disk | 6 GB for minimal WSL workflow | 10+ GB recommended; full VM lab is out of scope for current low-disk setup |
 
 Check quickly:
 ```powershell

@@ -2,7 +2,7 @@
 ## AI-Assisted VAPT Automation & Reporting Workflow (DEPI — Project 5)
 
 > **Status:** ACTIVE · **Owner:** [@7adadd](https://github.com/7adadd) · **Duration:** 4 weeks official / **12-day fast track available**
-> **Last updated:** 2026-11-22
+> **Last updated:** 2026-11-27
 
 ---
 
@@ -37,7 +37,7 @@ Build a **repeatable, privacy-first workflow** where locally-hosted LLMs assist 
 | S3 | AD phase | AI correctly explains ≥2 BloodHound attack paths, verified against GUI ground truth |
 | S4 | AD scripts | ≥3 AI-generated scripts that run successfully in the lab |
 | S5 | Web phase | ≥5 AI-suggested payloads validated with PoC evidence in DVWA/Juice Shop |
-| S6 | Mobile phase | ≥2 AI-generated Frida scripts working in the emulator |
+| S6 | Mobile phase | jadx-based static review plus ≥2 Frida scripts syntax/signature-checked; device execution is reported only if actually performed |
 | S7 | Reporting | Full report generated (AI draft) + human-edited version + tracked diff |
 | S8 | Validation | Validation log covers **100%** of AI claims used; accuracy rate computed |
 | S9 | SOP | Reusable workflow SOP that a new team member could follow unaided |
@@ -87,22 +87,22 @@ Installed: `llama3.2:3b` (main assistant, Q4_K_M, 128K ctx) · `llama-guard3:1b`
 
 Measured on RTX 3050 Ti: prompt eval **625 tok/s**, generation **31.5 tok/s** — fast and usable (first row in `lab/model-benchmarks.md`).
 
-| Phase | llama3.2:3b verdict |
-|---|---|
-| W1 prompt testing & triage prompts | ✅ sufficient |
-| W2 recon triage | ✅ sufficient (validated in live test) |
-| W2 AD attack paths + script generation | ⚠️ elevated hallucination risk — add **qwen2.5:7b** |
-| W3 web payload suggestions | ✅ acceptable with the validation gate |
-| W3 mobile code review + Frida scripts | ❌ too weak — needs qwen2.5:7b |
-| W4 report drafting | ⚠️ acceptable; 7B output is markedly better |
+| Phase | llama3.2:3b verdict (initial assessment) | Final measured verdict (benchmarks + live runs) |
+|---|---|---|
+| W1 prompt testing & triage prompts | ✅ sufficient | ✅ sufficient |
+| W2 recon triage | ✅ sufficient | ✅ sufficient |
+| W2 AD attack paths + script generation | ⚠️ elevated hallucination risk — planned qwen2.5:7b | ✅ qwen2.5:3b sufficed with the validation gate |
+| W3 web payload suggestions | ✅ acceptable | ✅ acceptable (5 live PoCs) |
+| W3 mobile code review + Frida scripts | ❌ too weak — planned 7B | ✅ qwen2.5:3b sufficed for static review (W3 validation log) |
+| W4 report drafting | ⚠️ acceptable | ✅ acceptable; human edit pass applied |
 
-**Decision:** keep `llama3.2:3b` as the fast/draft model + download **`qwen2.5:7b`** as the primary model — a single 4.7 GB download that fits the 31 GB free. Optional only if space allows: `deepseek-coder:6.7b` (3.8 GB). LM Studio / GPT4All are **optional** (the program sheet says "Ollama, LM Studio, **or** GPT4All") — skip them to save disk.
+**Final decision (as executed):** keep `llama3.2:3b` as the fast/cross-check model and pull **`qwen2.5:3b`** as the primary model (1.9 GB — measured faster generation and higher grounding score, see `lab/model-benchmarks.md`). The originally considered `qwen2.5:7b` (4.7 GB) was **not pulled**: the 4 GB VRAM budget and measured 3B results made it unnecessary for the validation-gated workflow. LM Studio / GPT4All are **optional** (the program sheet says "Ollama, LM Studio, **or** GPT4All") — skipped to save disk.
 
 ### Software stack
 | Layer | Tools |
 |---|---|
 | AI runtime | **Ollama** (primary, CLI + localhost:11434 API), **LM Studio** (GUI + OpenAI-compatible server :1234), **GPT4All** (GUI, LocalDocs) |
-| Models | `llama3.1:8b-instruct-q4_K_M`, `qwen2.5:7b-instruct-q4_K_M`, `deepseek-coder:6.7b-instruct`, optional `qwen2.5:14b` |
+| Models | `qwen2.5:3b` (primary, measured) + `llama3.2:3b` (fast/cross-check) — larger variants (`qwen2.5:7b`, `deepseek-coder:6.7b`) were considered but not pulled (VRAM/disk budget) |
 | Recon/AD | Nmap, enum4linux-ng, smbclient, ldapdomaindump (inside kali WSL), **BloodHound + Neo4j (Windows) + bloodhound-python collector** |
 | Web | **Burp Suite Community** (Windows), DVWA (apache2 + php + mariadb inside kali WSL), Juice Shop optional |
 | Mobile | jadx (Windows, static), **Frida + frida-tools**, DIVA / InsecureBankv2 — runtime tests on a **physical Android phone via USB** (no emulator — disk constraint); static-only fallback if no phone |
@@ -128,7 +128,7 @@ See [`../README.md`](../README.md#repository-structure) — the skeleton already
 |---|---|---|---|
 | D1 | ✅ **Done** — Ollama v0.40.2 already installed; server-start issue diagnosed & fixed; llama3.2:3b verified working on GPU | 🛠 | ✅ |
 | D2 | ✅ **Done (minimal)** — Ollama alone satisfies the program sheet ("Ollama, LM Studio, **or** GPT4All"). LM Studio/GPT4All optional, skipped to save disk | 🛠 | Primary runtime ready |
-| D3 | **Benchmark matrix**: 6 fixed tasks per model. ✅ First row measured (llama3.2:3b: 31.5 tok/s gen / 625 tok/s prompt on RTX 3050 Ti). Complete the matrix for `qwen2.5:7b` after pull | 🛠 (+ script I provide) | `lab/model-benchmarks.md` |
+| D3 | **Benchmark matrix**: 6 fixed tasks per model. ✅ First row measured (llama3.2:3b: 31.5 tok/s gen / 625 tok/s prompt on RTX 3050 Ti). Complete the matrix for `qwen2.5:3b` after pull | 🛠 (+ script I provide) | `lab/model-benchmarks.md` |
 | D4 | kali-linux WSL ✅ already installed — install attacker toolset via apt (nmap, enum4linux-ng, impacket, smbclient, seclists); enable WSL→Windows Ollama API access (mirrored networking); checkpoint WSL | 🛠 | Attacker workspace ready |
 | D5 | Provision **Samba AD DC inside kali WSL** + apply weak-AD config (2 Kerberoastable SPNs, 1 AS-REP roastable user, writable ACL path, password in description field); checkpoint distro | 🛠 | AD lab ready |
 | D6 | Define **prompt template standard** (7-field format, see doc 02) + write first batch: recon templates ×4, AD templates ×5, report templates ×4 | 🤖→🛠 review | `prompts/` v0.1 |
@@ -180,10 +180,37 @@ See [`../README.md`](../README.md#repository-structure) — the skeleton already
 
 ## 7. Deliverables Checklist (mapped to the program sheet)
 
-- [x] **Week 1:** AI lab setup guide · local model benchmarks (`llama3.2:3b` + `qwen2.5:3b` × 6 tasks) · 23-template prompt library (`prompts/`) · privacy/ethics checklist
-- [x] **Week 2:** AI-assisted AD & recon analysis (`deliverables/week2-ad-recon-analysis.md`) · 4 generated scripts (`scripts/generated/`) · validation notes (`evidence/validation-log.md`) · hallucination/accuracy review
-- [x] **Week 3:** AI-assisted web/mobile findings (`deliverables/week3-web-mobile-analysis.md`) · payload suggestions · `jadx` DIVA code explanations · 5 live DVWA validated PoCs + 2 verified Frida scripts
+- [x] **Week 1:** AI lab setup guide · local model benchmarks (`llama3.2:3b` + `qwen2.5:3b` × 6 tasks) · 24-template prompt library (`prompts/`) · privacy/ethics checklist
+- [x] **Week 2:** AI-assisted AD & recon analysis (`deliverables/week2-ad-recon-analysis.md`) · 6 generated scripts (`scripts/generated/`) · validation notes (`evidence/validation-log.md`, Week 2 accuracy 50% verified / 25% partial / 25% hallucinated) · BloodHound ground truth
+- [x] **Week 3:** AI-assisted web/mobile findings (`deliverables/week3-web-mobile-analysis.md`) · 5 live DVWA PoCs with screenshots · `jadx` DIVA static code review · 2 Frida scripts syntax/signature-verified (not device-executed per the recorded scope note) · Week 3 accuracy 58.3% verified
 - [x] **Week 4:** Final AI-assisted VAPT report (`VAPT-Report-AI-Draft.pdf`) · human-edited report (`VAPT-Report-Human-Edited.pdf/.docx`) · hallucination check & diff (`week4-hallucination-check-and-diff.md`) · reusable SOP (`REUSABLE-VAPT-AI-SOP.pdf`) · presentation (`DEPI-Project5-Presentation.pptx`)
+
+## 7b. Post-Plan Evolution — VAPT Studio & Agentic Port Solver (added after Week 4)
+
+These additions extend the "workflow + SOP" deliverable into a running local tool. They are
+**not** part of the original program sheet, but were built as a live demonstration layer:
+
+- **VAPT Studio (localhost Web GUI)** — FastAPI app on `127.0.0.1:8000`: Analyzer (passive
+  request analysis), Port Solver, benchmarks Dashboard, AD attack-path graph, report export.
+  Hardened with an ephemeral session token + Origin/Host validation on all mutating endpoints,
+  request-size limits, and zero external network calls from the GUI itself.
+- **Agentic Port Solver** (`scripts/agentic_solver.py` + `scripts/port_solver.py` +
+  `scripts/safe_lab_http.py`) — an evidence-driven reasoning loop
+  (Observe → LLM hypothesis → one bounded action → verify official PortSwigger solve signal →
+  adapt), **not** a per-lab playbook. The model decides what to try; the tool executes
+  mechanically (e.g. byte-level XML encoding via the `ENCODE_XML` tool-use contract) and
+  redacts secrets. Scope-pinned to `*.web-security-academy.net`, HTTPS-only, redirect- and
+  userinfo-rejecting, request-count-capped, and POST/state-changing actions require explicit
+  user consent in the GUI. `solved` is claimed **only** on PortSwigger's official indicator.
+- **12-challenge DVWA/PortSwigger passive suite** — deterministic offline captures evaluated
+  through the Analyzer (`deliverables/challenge-evaluation-results.md`, 12/12 diagnosis).
+- **Offline-safe test suite** — 24 unit/API tests (no Ollama/network required) + opt-in live
+  integration tests + Playwright GUI smoke verification.
+
+**Scope note (updated non-goal):** the original "no autonomous exploitation" non-goal applies to
+unowned targets. The Port Solver executes **consent-gated, scope-pinned, bounded requests only
+against the user's own PortSwigger training-lab instances** — the same actions a human analyst
+performs in the browser, with the human explicitly approving state-changing requests.
 
 ---
 
@@ -194,7 +221,7 @@ For finishing "في أسرع وقت". Two parallel streams: **AI/tooling** (most
 | Day | Stream A — AI/Docs/Scripts 🤖 | Stream B — Lab Execution 🛠 |
 |---|---|---|
 | 1 | All Week-1 docs already generated (done in this session) | ✅ Ollama verified working; llama3.2:3b confirmed |
-| 2 | Benchmark script ready | Pull `qwen2.5:7b` (4.7 GB); kali WSL toolset via apt |
+| 2 | Benchmark script ready | Pull `qwen2.5:3b` (1.9 GB); kali WSL toolset via apt |
 | 3 | Prompt library v0.2 (all 20+ templates) | Run benchmark matrix (30–45 min) |
 | 4 | Nmap/enum ingest scripts | Samba AD DC up in WSL + weak-AD config |
 | 5 | Weak-AD config script (PowerShell) + validation log template | BloodHound install; Nmap + enum4linux scans of DC |
@@ -238,7 +265,7 @@ For finishing "في أسرع وقت". Two parallel streams: **AI/tooling** (most
 
 **What requires your machine/hands (unavoidable):**
 - ✅ Done: Ollama installed & fixed; llama3.2:3b benchmarked (31.5 tok/s gen on GPU)
-- Pull `qwen2.5:7b` — the single remaining model download (4.7 GB)
+- ✅ Done: `qwen2.5:3b` pulled and benchmarked as primary model
 - Install kali-WSL toolset; provision Samba AD DC + weak config
 - Run scans, bloodhound-python collection, Burp, Frida tests (phone via USB, or static fallback)
 - Capturing PoC screenshots and evidence
@@ -251,7 +278,7 @@ For finishing "في أسرع وقت". Two parallel streams: **AI/tooling** (most
 
 | Week | Done means |
 |---|---|
-| 1 | `ollama run` works ✅; 2 models benchmarked (llama3.2:3b + qwen2.5:7b); ≥13 templates tested once; docs committed |
+| 1 | `ollama run` works ✅; 2 models benchmarked (llama3.2:3b + qwen2.5:3b); ≥13 templates tested once; docs committed |
 | 2 | Validation log full for Week 2; accuracy % computed; ≥3 AI scripts executed in lab |
 | 3 | ≥5 validated web PoCs + ≥2 working Frida scripts, all with evidence |
 | 4 | Both reports + diff exist; SOP written; QA done; presentation ready; repo pushed |

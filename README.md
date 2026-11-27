@@ -13,8 +13,8 @@ A privacy-first, human-in-the-loop workflow that uses **locally-hosted LLMs** (O
 
 | Benefit | Meaning |
 |---|---|
-| **Privacy** | Client / lab data never leaves the machine — no cloud APIs |
-| **Offline** | Works inside isolated, air-gapped lab networks |
+| **Local inference** | Prompt data sent to Ollama is restricted to the configured loopback endpoint. |
+| **Network scope** | PortSwigger import/inspection requires outbound HTTPS; the optional solver actively sends bounded requests only to the exact authorized lab instance after consent. This is not an air-gapped/offline mode. |
 | **Reproducible** | Same model + same prompt = repeatable workflow |
 | **Free** | No per-token cost for a full engagement |
 
@@ -42,14 +42,19 @@ AI-Assisted-VAPT-Automation-Reporting-Workflow/
 |    |-- 02-PROMPT-LIBRARY.md          # Prompt template standard + testing log
 |    |-- 03-PRIVACY-ETHICS-CHECKLIST.md# Mandatory rules before any test
 |    `-- 04-VALIDATION-FRAMEWORK.md    # Anti-hallucination & accuracy review SOP
-|-- prompts/                          # 23 versioned prompt templates (5 phases)
+|-- prompts/                          # 24 versioned prompt templates (5 phases)
 |    |-- recon/                        # R1–R4
 |    |-- active-directory/             # AD1–AD5
-|    |-- web/                          # W1–W5
+|    |-- web/                          # W1–W5 + PS1 PortSwigger lab analyst
 |    |-- mobile/                       # M1–M4
 |    `-- reporting/                    # RP1–RP5
 |-- scripts/
 |    |-- vapt_ai.py                    # Local-only Ollama runner + --cross-check
+|    |-- safe_lab_http.py              # Scope-pinned HTTPS-only lab transport (host/redirect/request caps)
+|    |-- lab_inspect.py                # Single-URL passive lab surface inspector
+|    |-- port_solver.py                # Official-signal solve verification + secret redaction
+|    |-- agentic_solver.py             # Evidence-driven Observe→Reason→Act→Verify loop
+|    |-- evaluate_challenges.py        # 12-challenge DVWA/PortSwigger passive suite runner
 |    |-- run_benchmarks.py             # 6-task x 2-model benchmark runner
 |    |-- run_dvwa_pocs.py              # Live DVWA PoC & screenshot automation
 |    |-- ingest/                       # Nmap XML, enum, BloodHound (+BFS), Burp, jadx
@@ -69,13 +74,15 @@ AI-Assisted-VAPT-Automation-Reporting-Workflow/
 
 | Deliverable | Path | Highlights |
 |---|---|---|
-| **Week 1 Benchmarks** | [`lab/model-benchmarks.md`](lab/model-benchmarks.md) | `qwen2.5:3b` (69.3 tok/s, 5.0/5) vs `llama3.2:3b` (39.3 tok/s, 4.3/5) on RTX 3050 Ti |
-| **Week 2 AD & Recon** | [`deliverables/week2-ad-recon-analysis.md`](deliverables/week2-ad-recon-analysis.md) | Real Kali Nmap + BloodHound BFS Ground Truth + 4 validated audit scripts |
-| **Week 3 Web & Mobile** | [`deliverables/week3-web-mobile-analysis.md`](deliverables/week3-web-mobile-analysis.md) | 5 live DVWA PoCs with screenshots + `jadx` DIVA review + 2 Frida scripts |
-| **Week 4 AI Draft vs Final** | [`deliverables/VAPT-Report-Human-Edited.pdf`](deliverables/VAPT-Report-Human-Edited.pdf) | 9 findings verified via `calc_cvss.py`; `diff_draft.py` (10.3% word similarity) |
-| **Hallucination Audit** | [`deliverables/week4-hallucination-check-and-diff.md`](deliverables/week4-hallucination-check-and-diff.md) | Full Week 1–4 accuracy & caught hallucinations summary |
+| **Week 1 Benchmarks** | [`lab/model-benchmarks.md`](lab/model-benchmarks.md) | Recorded local runs; see task-level methodology and limitations in the file |
+| **Week 2 AD & Recon** | [`deliverables/week2-ad-recon-analysis.md`](deliverables/week2-ad-recon-analysis.md) | Includes collected recon artifacts and a documented synthetic AD graph/BFS validation path |
+| **Week 3 Web & Mobile** | [`deliverables/week3-web-mobile-analysis.md`](deliverables/week3-web-mobile-analysis.md) | DVWA test artifacts and static DIVA review; Frida code validation is not equivalent to on-device execution |
+| **Week 4 AI Draft vs Final** | [`deliverables/VAPT-Report-Human-Edited.pdf`](deliverables/VAPT-Report-Human-Edited.pdf) | Human-edited report; CVSS vectors are re-computed by `calc_cvss.py` |
+| **Hallucination Audit** | [`deliverables/week4-hallucination-check-and-diff.md`](deliverables/week4-hallucination-check-and-diff.md) | Recorded validation outcomes; challenge evaluator signals are heuristic unless explicitly human-adjudicated |
 | **Reusable SOP** | [`deliverables/REUSABLE-VAPT-AI-SOP.pdf`](deliverables/REUSABLE-VAPT-AI-SOP.pdf) | End-to-end repeatable workflow SOP |
 | **Presentation** | [`deliverables/DEPI-Project5-Presentation.pptx`](deliverables/DEPI-Project5-Presentation.pptx) | 12-slide defense deck with measured benchmark chart & demo script |
+| **VAPT Studio GUI** | [`run_gui.py`](run_gui.py) | Localhost-only analyzer / Port Solver / dashboard / graph / report GUI with session-token hardening |
+| **Challenge Suite Eval** | [`deliverables/challenge-evaluation-results.md`](deliverables/challenge-evaluation-results.md) | 12/12 passive diagnoses across DVWA + PortSwigger patterns |
 
 ## Documentation Map
 
@@ -98,36 +105,44 @@ AI-Assisted-VAPT-Automation-Reporting-Workflow/
 
 ## Quickstart
 
-```bash
-# 1. Start local Ollama & verify Llama + Qwen models
-ollama list   # llama3.2:3b and qwen2.5:3b
+```powershell
+# 1. Create a virtual environment and install dependencies
+python -m venv .venv
+.venv\\Scripts\\Activate.ps1
+pip install -r requirements.txt
 
-# 2. Run 6-task local benchmark matrix
-python scripts/run_benchmarks.py
+# 2. Confirm local Ollama and models
+ollama list   # expected: llama3.2:3b and qwen2.5:3b
 
-# 3. Ingest Nmap XML -> grounded LLM context -> dual-model cross-check
-python scripts/ingest/nmap_to_context.py evidence/week2/nmap-lab.xml --out evidence/week2/nmap_context.txt
-python scripts/vapt_ai.py --template R1 --var-file nmap_xml_summary=evidence/week2/nmap_context.txt --cross-check
+# 3. Run deterministic offline tests (no Ollama or network)
+python -I -m unittest discover -s tests -p "test_solver_unit.py" -v
+python -I -m unittest discover -s tests -p "test_gui_api.py" -v
 
-# 4. Verify CVSS 3.1 math & render final report
-python scripts/reporting/calc_cvss.py "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
-python scripts/reporting/build_vapt_report.py deliverables/vapt-report-human-edited.md \
-  --pdf deliverables/VAPT-Report-Human-Edited.pdf --docx deliverables/VAPT-Report-Human-Edited.docx \
-  --title "VAPT Assessment Report — Human-Edited Final"
+# 4. Start the localhost GUI in this terminal
+python -I run_gui.py
+```
 
-# 5. Launch the Localhost Web GUI (5-Tab Studio @ http://127.0.0.1:8000)
-python run_gui.py
+The launcher prints a one-run session token. Open `http://127.0.0.1:8000` in that same local browser session; POST requests from the GUI use the injected token. For API smoke tests, use the GUI session or a local test client; do not expose the server to a LAN.
+
+Optional integrations: `tests/test_gui_api_live.py` requires `VAPT_RUN_LIVE_TESTS=1`, a running local Ollama, and outbound HTTPS. It is not part of the default offline test suite.
+
+For a scan/review workflow, use artifacts you captured from your own lab:
+
+```powershell
+python -I scripts/ingest/nmap_to_context.py <your-nmap.xml> --out <context.txt>
+python -I scripts/vapt_ai.py --template R1 --var-file nmap_xml_summary=<context.txt>
+python -I scripts/reporting/calc_cvss.py "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
 ```
 
 ## Web GUI Studio (`run_gui.py`)
 
-A lightweight, 100% offline FastAPI + Dark UI dashboard bound strictly to `127.0.0.1:8000` (with bundled Chart.js & Cytoscape.js and zero external network calls):
+A FastAPI dashboard bound to `127.0.0.1:8000`. Static UI assets are bundled locally. Local Ollama inference uses loopback; PortSwigger import and the explicitly consented Port Solver require outbound HTTPS to the selected training instance. The solver is active, bounded, and must not be used outside an instance the operator is authorized to test:
 
-1. **Command Center:** Live Ollama status, accuracy/hallucination KPIs, Chart.js benchmark charts, and the 12-pattern DVWA + PortSwigger passive challenge matrix.
-2. **Artifact Analyzer:** Upload or select Nmap XML, Enum logs, BloodHound JSON, HTTP requests, or jadx Java/Manifest files; inspect `[source:line]` ingested context; run any of the 23 prompt templates locally.
-3. **Cross-Model Hallucination Arena:** Side-by-side `qwen2.5:3b` vs `llama3.2:3b` comparison with one-click human validation buttons (`Verified`, `Corrected`, `Hallucination`) logging directly to `deliverables/validation-log.md`.
-4. **AD Attack Path Graph:** Interactive Cytoscape.js BloodHound graph of `LAB.LOCAL` with deterministic BFS shortest attack paths highlighted.
-5. **Report & Diff Studio:** Live CVSS 3.1 calculator, AI Draft vs. Human-Edited diff viewer, live DVWA PoC screenshot gallery, and one-click PDF/DOCX/PPTX exports.
+1. **Analyzer:** Upload or paste Nmap XML, enum output, BloodHound JSON, HTTP captures, or decompiled mobile source; select a grounded prompt and local model.
+2. **Port Solver:** Optional active interaction with the caller's own Academy instance. Passive observation is the default; enabling state changes requires an explicit checkbox. The UI reports official completion separately from attempts and suggestions.
+3. **Dashboard:** Ollama/model availability, validation metrics, benchmark charts, and the bundled 12-item artifact suite.
+4. **AD Attack Paths:** Cytoscape graph with computed layout and highlighted BFS edges when the graph fixture is available.
+5. **Reports & Export:** CVSS calculation, AI-draft vs human-edited diff, PoC image gallery, and report/SOP/presentation exports.
 
 ## Ethics & Legal Notice
 
@@ -135,10 +150,11 @@ This project is an **educational deliverable** for the DEPI graduation program.
 All testing is performed **only** against self-owned, isolated lab machines
 (DVWA, OWASP Juice Shop, Metasploitable, intentionally-vulnerable AD labs, DIVA/InsecureBankv2 Android apps).
 
-- No third-party system is ever targeted.
+- No unrelated third-party system is targeted. The optional PortSwigger Solver is limited to an Academy training instance explicitly opened/authorized by the user and requires consent before state-changing requests.
+- Local inference uses loopback; importing/inspecting a PortSwigger URL makes external HTTPS requests to that host, so the project is not fully offline.
 - The privacy/ethics checklist in [`docs/03-PRIVACY-ETHICS-CHECKLIST.md`](docs/03-PRIVACY-ETHICS-CHECKLIST.md) is mandatory and must pass before any test.
 - Any real engagement would require explicit written authorization.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+No license file is currently included. Do not redistribute or reuse this repository until the owner selects and adds a license.

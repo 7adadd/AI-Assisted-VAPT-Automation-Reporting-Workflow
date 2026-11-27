@@ -1,0 +1,15 @@
+# Core local GUI/API and report tooling
+fastapi>=0.110,<1
+uvicorn[standard]>=0.27,<1
+requests>=2.31,<3
+python-multipart>=0.0.9,<1
+pydantic>=2.6,<3
+markdown>=3.5,<4
+PyMuPDF>=1.23,<2
+python-docx>=1.1,<2
+python-pptx>=0.6.23,<2
+Pillow>=10,<13
+matplotlib>=3.8,<4
+
+# Optional UI verification only (install browser separately if needed)
+playwright>=1.42,<2

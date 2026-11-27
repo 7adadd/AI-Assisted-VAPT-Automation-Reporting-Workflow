@@ -2,7 +2,9 @@
 """Localhost-only FastAPI backend for the AI-Assisted VAPT Automation Web GUI."""
 from __future__ import annotations
 
+import hmac
 import json
+import os
 import re
 import subprocess
 import sys
@@ -10,10 +12,11 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 import requests
 from fastapi import FastAPI, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -42,6 +45,8 @@ from burp_to_context import format_http_context  # noqa: E402
 from mobile_to_context import format_mobile_context  # noqa: E402
 from calc_cvss import score_vector  # noqa: E402
 from diff_draft import analyze_diff  # noqa: E402
+
+MAX_ANALYZE_BYTES = 2 * 1024 * 1024
 
 STATIC_DIR = ROOT / "app" / "static"
 DELIVERABLES_DIR = ROOT / "deliverables"
@@ -90,6 +95,25 @@ EXTRA_SAMPLES: List[Dict[str, str]] = [
 
 def _all_samples_map() -> Dict[str, Dict[str, str]]:
     return {item["id"]: item for item in (CHALLENGE_CATALOG + EXTRA_SAMPLES)}
+
+
+def _available_samples() -> List[Dict[str, Any]]:
+    """Return catalog rows with availability; optional evidence is never assumed in a fresh clone."""
+    rows = []
+    for item in CHALLENGE_CATALOG + EXTRA_SAMPLES:
+        path = (ROOT / item["path"]).resolve()
+        row = dict(item)
+        row["exists"] = path.is_relative_to(ROOT.resolve()) and path.is_file()
+        rows.append(row)
+    return rows
+
+
+def _count_report_findings() -> int:
+    report = DELIVERABLES_DIR / "vapt-report-human-edited.md"
+    if not report.exists():
+        return 0
+    text = report.read_text(encoding="utf-8", errors="replace")
+    return len(re.findall(r"(?im)^#{1,3}\\s+(?:Finding\\s+)?(?:\\d+|[A-Z]{1,4}-\\d+)\\b", text))
 
 
 def _parse_validation_log() -> Dict[str, Any]:
@@ -223,9 +247,29 @@ def _build_template_vars(tpl_text: str, ingested: str, extra_vars: Optional[Dict
     return variables
 
 
+@app.middleware("http")
+async def protect_local_mutations(request: Request, call_next):
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        origin = request.headers.get("origin")
+        if origin and origin not in {"http://127.0.0.1:8000", "http://localhost:8000"}:
+            return JSONResponse({"detail": "Cross-origin request blocked"}, status_code=403)
+        host = request.headers.get("host", "").lower()
+        if host not in {"127.0.0.1:8000", "localhost:8000"}:
+            return JSONResponse({"detail": "Invalid Host header"}, status_code=403)
+        token = os.environ.get("VAPT_STUDIO_SESSION_TOKEN")
+        if token:
+            supplied = request.headers.get("x-vapt-session", "")
+            if not hmac.compare_digest(supplied, token):
+                return JSONResponse({"detail": "Missing/invalid local session token; launch with run_gui.py"}, status_code=403)
+    return await call_next(request)
+
+
 @app.get("/")
-def serve_index() -> FileResponse:
-    return FileResponse(str(STATIC_DIR / "index.html"))
+def serve_index() -> HTMLResponse:
+    html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    token = os.environ.get("VAPT_STUDIO_SESSION_TOKEN", "")
+    html = html.replace("<!--VAPT_SESSION_TOKEN-->", f'<meta name="vapt-session" content="{token}">')
+    return HTMLResponse(html)
 
 
 @app.get("/api/health")
@@ -258,7 +302,7 @@ def api_health() -> Dict[str, Any]:
         "stats": {
             "total_prompts": len(prompt_files),
             "total_challenges": len(CHALLENGE_CATALOG),
-            "total_findings": 9,
+            "total_findings": _count_report_findings(),
             "validation": {k: v for k, v in vstats.items() if k != "entries"},
         },
     }
@@ -341,11 +385,7 @@ def api_prompts() -> Dict[str, Any]:
 
 @app.get("/api/samples")
 def api_samples() -> Dict[str, Any]:
-    items = []
-    for s in CHALLENGE_CATALOG + EXTRA_SAMPLES:
-        p = ROOT / s["path"]
-        items.append({**s, "exists": p.exists()})
-    return {"samples": items}
+    return {"samples": _available_samples()}
 
 
 @app.get("/api/challenges")
@@ -353,10 +393,14 @@ def api_challenges() -> Dict[str, Any]:
     eval_map: Dict[str, Any] = {}
     summary = {}
     if CHALLENGE_EVAL_JSON.exists():
-        data = json.loads(CHALLENGE_EVAL_JSON.read_text(encoding="utf-8"))
-        summary = data.get("summary", {})
-        for r in data.get("results", []):
-            eval_map[r["id"]] = r
+        try:
+            data = json.loads(CHALLENGE_EVAL_JSON.read_text(encoding="utf-8"))
+            summary = data.get("summary", {}) if isinstance(data, dict) else {}
+            for row in data.get("results", []) if isinstance(data, dict) else []:
+                if isinstance(row, dict) and row.get("id"):
+                    eval_map[row["id"]] = row
+        except (OSError, json.JSONDecodeError):
+            summary = {"status": "unavailable", "reason": "Challenge evaluation data is missing or invalid."}
     items = []
     for c in CHALLENGE_CATALOG:
         items.append({**c, "evaluation": eval_map.get(c["id"])})
@@ -367,9 +411,12 @@ async def _extract_analyze_payload(request: Request) -> Dict[str, Any]:
     ct = (request.headers.get("content-type") or "").lower()
     if "application/json" in ct:
         body = await request.json()
+        raw_text = body.get("raw_text") or ""
+        if len(str(raw_text).encode("utf-8")) > MAX_ANALYZE_BYTES:
+            raise HTTPException(status_code=413, detail="Analysis input exceeds the 2 MiB limit.")
         return {
             "sample_id": body.get("sample_id"),
-            "raw_text": body.get("raw_text") or "",
+            "raw_text": raw_text,
             "filename": body.get("filename") or "input.txt",
             "artifact_type": body.get("artifact_type") or "auto",
             "template_id": body.get("template_id") or "W1",
@@ -381,7 +428,9 @@ async def _extract_analyze_payload(request: Request) -> Dict[str, Any]:
     filename = str(form.get("filename") or "input.txt")
     up = form.get("file")
     if up is not None and hasattr(up, "read") and getattr(up, "filename", None):
-        raw_bytes = await up.read()
+        raw_bytes = await up.read(MAX_ANALYZE_BYTES + 1)
+        if len(raw_bytes) > MAX_ANALYZE_BYTES:
+            raise HTTPException(status_code=413, detail="Uploaded artifact exceeds the 2 MiB limit.")
         raw_text = raw_bytes.decode("utf-8", errors="replace")
         filename = up.filename
     extra_vars = {}
@@ -410,15 +459,19 @@ def _resolve_input(payload: Dict[str, Any]) -> tuple[str, str, str]:
         smap = _all_samples_map()
         if sample_id not in smap:
             raise HTTPException(status_code=404, detail=f"Sample not found: {sample_id}")
-        sp = ROOT / smap[sample_id]["path"]
+        sp = (ROOT / smap[sample_id]["path"]).resolve()
+        if not sp.is_relative_to(ROOT.resolve()):
+            raise HTTPException(status_code=400, detail="Sample path escapes repository root")
         if not sp.exists():
-            raise HTTPException(status_code=404, detail=f"Sample file missing on disk: {sp}")
+            raise HTTPException(status_code=404, detail=f"Optional sample unavailable in this checkout: {smap[sample_id]['name']}")
         raw_text = sp.read_text(encoding="utf-8", errors="replace")
         filename = sp.name
         if atype == "auto":
             atype = smap[sample_id]["artifact_type"]
     if not raw_text.strip():
         raise HTTPException(status_code=400, detail="Provide a file, sample_id, or raw_text.")
+    if len(raw_text.encode("utf-8")) > MAX_ANALYZE_BYTES:
+        raise HTTPException(status_code=413, detail="Analysis input exceeds the 2 MiB limit.")
     return raw_text, filename, atype
 
 
@@ -437,9 +490,9 @@ async def api_analyze(request: Request) -> Dict[str, Any]:
             model=payload["model"],
             prompt=usr_p,
             system_prompt=sys_p,
-            temperature=0.2,
-            num_ctx=4096,
-            num_predict=1024,
+            temperature=0.15,
+            num_ctx=6144,
+            num_predict=2048,
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Local Ollama inference failed: {exc}") from exc
@@ -473,9 +526,9 @@ async def api_cross_check(request: Request) -> Dict[str, Any]:
                 model=model,
                 prompt=usr_p,
                 system_prompt=sys_p,
-                temperature=0.2,
-                num_ctx=4096,
-                num_predict=1024,
+                temperature=0.15,
+                num_ctx=6144,
+                num_predict=2048,
             )
             results[model] = res
         except Exception as exc:
@@ -612,6 +665,8 @@ class ExportReq(BaseModel):
 @app.post("/api/report/export")
 def api_report_export(req: ExportReq) -> Dict[str, Any]:
     target = req.target.lower()
+    if target == "report":
+        target = "human_report"
     generated: List[Dict[str, Any]] = []
 
     if target == "human_report":
@@ -682,3 +737,238 @@ def api_report_export(req: ExportReq) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail=f"Unknown export target: {target}")
 
     return {"status": "ok", "target": target, "files": generated}
+
+
+# ---------------------------------------------------------------------------
+# PortSwigger Web Security Academy lab import (URL -> local artifact)
+#
+# Scope guard: only PortSwigger's own training domains are accepted. These labs
+# are free, intentionally-vulnerable teaching environments, so importing one for
+# local passive analysis is authorised by design. The importer only FETCHES and
+# stores the lab page as a local artifact - it never attacks the target. Any
+# testing stays human-driven inside the analyst's own lab instance.
+# ---------------------------------------------------------------------------
+ALLOWED_LAB_HOSTS = (
+    "portswigger.net",
+    "www.portswigger.net",
+    "web-security-academy.net",
+)
+LAB_IMPORT_DIR = ROOT / "lab" / "imported"
+
+
+def _validate_lab_url(url: str) -> str:
+    parsed = urlparse(url.strip())
+    host = (parsed.hostname or "").lower().rstrip(".")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid port in lab URL") from exc
+    if parsed.scheme.lower() != "https" or parsed.username is not None or parsed.password is not None or port not in (None, 443):
+        raise HTTPException(status_code=400, detail="Only HTTPS URLs on port 443 without userinfo are accepted")
+    allowed = any(host == h or host.endswith("." + h) for h in ALLOWED_LAB_HOSTS)
+    if not allowed:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported host. Only PortSwigger Web Security Academy domains are accepted.",
+        )
+    return url.strip()
+
+
+def _extract_lab_metadata(html: str, url: str) -> Dict[str, str]:
+    """Pull the lab title, description and target host out of a lab page."""
+    title = ""
+    m = re.search(r"<title[^>]*>(.*?)</title>", html, re.I | re.S)
+    if m:
+        title = re.sub(r"\s+", " ", m.group(1)).strip()
+
+    # PortSwigger puts the real lab brief in <meta name="description">.
+    # Attribute order varies (content before name), so parse every meta tag.
+    desc = ""
+    for tag in re.findall(r"<meta\b[^>]*>", html, re.I):
+        attrs = dict(re.findall(r'([a-zA-Z:-]+)\s*=\s*"([^"]*)"', tag))
+        if (attrs.get("name") or "").lower() == "description":
+            cand = re.sub(r"\s+", " ", attrs.get("content", "")).strip()
+            if len(cand) > len(desc):
+                desc = cand
+    if not desc:
+        # Fallbacks for pages without a meta description.
+        for pat in (
+            r'<div[^>]+class="[^"]*(?:container|lab-content|description)[^"]*"[^>]*>(.*?)</div>\s*</div>',
+            r'<section[^>]*>(.*?)</section>',
+        ):
+            m = re.search(pat, html, re.I | re.S)
+            if m:
+                txt = re.sub(r"<[^>]+>", " ", m.group(1))
+                txt = re.sub(r"\s+", " ", txt).strip()
+                if len(txt) > len(desc):
+                    desc = txt
+    desc = desc[:1200]
+
+    # Strip the " | Web Security Academy" suffix PortSwigger appends to titles.
+    title = re.sub(r"\s*\|\s*Web Security Academy\s*$", "", title, flags=re.I).strip()
+
+    host = urlparse(url).hostname or ""
+    # The runnable instance lives on a per-user subdomain.
+    target = host
+    m = re.search(r"https?://([a-z0-9-]+\.web-security-academy\.net)", html, re.I)
+    if m:
+        target = m.group(1)
+
+    return {"title": title or "PortSwigger Lab", "description": desc, "target_host": target, "source_url": url}
+
+
+class LabImportReq(BaseModel):
+    url: str
+
+
+@app.post("/api/lab/import")
+def api_lab_import(req: LabImportReq) -> Dict[str, Any]:
+    """Fetch a PortSwigger lab page and store it as a local analysis artifact."""
+    url = _validate_lab_url(req.url)
+    try:
+        # Imports are an external fetch. Disable redirects so an allowlisted URL cannot redirect to a private host.
+        resp = requests.get(
+            url,
+            timeout=20,
+            allow_redirects=False,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; VAPT-Studio/1.0; local-lab-analysis)"},
+        )
+        if 300 <= resp.status_code < 400:
+            raise HTTPException(status_code=400, detail="Redirects are blocked by the lab import scope policy")
+        resp.raise_for_status()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not fetch lab page: {exc}") from exc
+
+    html = resp.text
+    meta = _extract_lab_metadata(html, url)
+
+    LAB_IMPORT_DIR.mkdir(parents=True, exist_ok=True)
+    slug = re.sub(r"[^a-z0-9]+", "-", meta["title"].lower()).strip("-")[:60] or "lab"
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    out = LAB_IMPORT_DIR / f"{slug}-{stamp}.html"
+    out.write_text(html, encoding="utf-8")
+
+    # Build a compact, model-friendly brief instead of dumping raw HTML.
+    brief_lines = [
+        f"SOURCE: PortSwigger Web Security Academy",
+        f"LAB TITLE: {meta['title']}",
+        f"LAB URL: {url}",
+        f"TARGET HOST: {meta['target_host']}",
+        f"DESCRIPTION: {meta['description']}",
+        "",
+        "NOTE: This is an intentionally-vulnerable PortSwigger training lab.",
+        "Analysis below is passive and human-driven; no requests are sent to the target.",
+    ]
+    brief = "\n".join(brief_lines)
+    brief_path = LAB_IMPORT_DIR / f"{slug}-{stamp}.txt"
+    brief_path.write_text(brief, encoding="utf-8")
+
+    return {
+        "status": "ok",
+        "stored_artifact": out.relative_to(ROOT).as_posix(),
+        "stored_brief": brief_path.relative_to(ROOT).as_posix(),
+        "bytes": len(html),
+        "metadata": meta,
+        "brief": brief,
+        "artifact_type": "raw",
+        "recommended_template": "PS1",
+    }
+
+
+class LabInspectReq(BaseModel):
+    url: str
+
+
+@app.post("/api/lab/inspect")
+def api_lab_inspect(req: LabInspectReq) -> Dict[str, Any]:
+    """Passively inspect a real PortSwigger lab instance (GET only).
+
+    Returns the observed attack surface as grounded context for analysis.
+    The academy description page has no vulnerable app behind it, so users
+    should paste the per-user lab instance URL they get from 'Access the lab'.
+    """
+    url = _validate_lab_url(req.url)
+    host = (urlparse(url).hostname or "").lower()
+    if not host.endswith(".web-security-academy.net"):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "This URL is an academy description page. Open your lab with 'Access the lab' "
+                "and paste the generated instance URL (https://<id>.web-security-academy.net/). "
+                "Only then is there a real application to inspect."
+            ),
+        )
+    sys.path.insert(0, str(SCRIPTS_DIR))
+    from lab_inspect import inspect_lab  # noqa: E402
+
+    try:
+        result = inspect_lab(url)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Passive inspection failed: {exc}") from exc
+
+    LAB_IMPORT_DIR.mkdir(parents=True, exist_ok=True)
+    out = LAB_IMPORT_DIR / f"lab-instance-{datetime.now().strftime('%Y%m%d-%H%M%S')}.txt"
+    out.write_text(result["context"], encoding="utf-8")
+
+    return {
+        "status": "ok",
+        "stored_context": out.relative_to(ROOT).as_posix(),
+        "origin": result["origin"],
+        "pages_fetched": result["pages_fetched"],
+        "query_params": result["query_params"],
+        "form_count": len(result["forms"]),
+        "context": result["context"],
+        "artifact_type": "raw",
+        "recommended_template": "PS1",
+        "note": "Passive GET inspection only — no payloads submitted, target not attacked.",
+    }
+
+
+class PortSolveReq(BaseModel):
+    url: str
+    description: str = ""
+    allow_state_changes: bool = False
+
+
+@app.post("/api/port-solver/solve")
+def api_port_solve(req: PortSolveReq) -> Dict[str, Any]:
+    """Solve a live PortSwigger training lab via the agentic reasoning loop.
+
+    The local LLM observes the surface, proposes requests, sees real responses,
+    and iterates. Playbook strategies are only a fallback when inference fails.
+    """
+    sys.path.insert(0, str(SCRIPTS_DIR))
+    from agentic_solver import agentic_solve  # noqa: E402
+
+    try:
+        # No playbook request is executed before the agentic run. Known strategies remain
+        # available only through an explicit playbook mode, avoiding duplicate actions.
+        result = agentic_solve(
+            req.url, hints=[], description=req.description,
+            allow_state_changes=req.allow_state_changes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Solver request failed: {exc}") from exc
+
+    return {
+        "status": result.state,
+        "solved": result.solved,
+        "source": result.source,
+        "hypothesis": result.hypothesis,
+        "confidence": result.confidence,
+        "lab_type": result.lab_type,
+        "title": result.title,
+        "payload": result.payload,
+        "method": result.method,
+        "http_status": result.status,
+        "evidence": result.evidence,
+        "explanation": result.explanation,
+        "steps": result.steps,
+        "requests": result.requests_log,
+        "scope": "Only your own *.web-security-academy.net training lab instance.",
+        "state_changes_allowed": req.allow_state_changes,
+    }

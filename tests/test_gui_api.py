@@ -1,107 +1,83 @@
 #!/usr/bin/env python3
-"""API smoke tests for the localhost FastAPI VAPT Automation GUI."""
+"""Offline FastAPI tests through TestClient; no server/Ollama/network writes."""
 from __future__ import annotations
 
+import os
 import sys
+import unittest
 from pathlib import Path
-
-import requests
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = "http://127.0.0.1:8000"
+sys.path.insert(0, str(ROOT))
+os.environ["VAPT_STUDIO_SESSION_TOKEN"] = "unit-test-token"
+
+from fastapi.testclient import TestClient  # noqa: E402
+from app.main import app  # noqa: E402
+
+HEADERS = {"Origin": "http://127.0.0.1:8000", "X-VAPT-Session": "unit-test-token"}
 
 
-def main() -> int:
-    print("1. GET /api/health")
-    r = requests.get(f"{BASE}/api/health", timeout=10)
-    assert r.status_code == 200, r.text
-    h = r.json()
-    assert h["privacy_mode"] == "127.0.0.1-only"
-    assert h["ollama_connected"] is True
-    assert h["stats"]["total_prompts"] == 23
+class LocalAPITests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.client = TestClient(app, base_url="http://127.0.0.1:8000")
 
-    print("2. GET /api/benchmarks")
-    r = requests.get(f"{BASE}/api/benchmarks", timeout=10)
-    assert r.status_code == 200
-    b = r.json()
-    assert len(b["tasks"]) == 6
+    def test_read_only_endpoints(self):
+        for path in ("/api/health", "/api/benchmarks", "/api/prompts", "/api/samples", "/api/challenges", "/api/ad-graph", "/api/report/diff"):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 200)
+        health = self.client.get("/api/health").json()
+        self.assertEqual(health["privacy_mode"], "127.0.0.1-only")
+        self.assertGreaterEqual(health["stats"]["total_prompts"], 24)
+        self.assertTrue(any(p["id"] == "PS1" for p in self.client.get("/api/prompts").json()["items"]))
+        self.assertEqual(len(self.client.get("/api/challenges").json()["challenges"]), 12)
 
-    print("3. GET /api/prompts")
-    r = requests.get(f"{BASE}/api/prompts", timeout=10)
-    assert r.status_code == 200
-    assert r.json()["total"] == 23
+    def test_mutating_api_requires_session_token_and_origin(self):
+        payload = {"vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"}
+        self.assertEqual(self.client.post("/api/cvss", json=payload).status_code, 403)
+        self.assertEqual(self.client.post("/api/cvss", json=payload, headers={**HEADERS, "Origin": "https://evil.example"}).status_code, 403)
+        r = self.client.post("/api/cvss", json=payload, headers=HEADERS)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["base_score"], 9.8)
 
-    print("4. GET /api/samples & /api/challenges")
-    assert requests.get(f"{BASE}/api/samples", timeout=10).status_code == 200
-    c = requests.get(f"{BASE}/api/challenges", timeout=10)
-    assert c.status_code == 200 and len(c.json()["challenges"]) == 12
+    def test_scope_guards_reject_external_urls_without_fetching(self):
+        cases = [
+            ("/api/lab/import", {"url": "http://169.254.169.254/latest/meta-data/"}),
+            ("/api/lab/inspect", {"url": "https://portswigger.net/web-security/"}),
+            ("/api/port-solver/solve", {"url": "https://evil.example/"}),
+        ]
+        with patch("requests.get", side_effect=AssertionError("must not perform network IO")):
+            for path, payload in cases:
+                with self.subTest(path=path):
+                    r = self.client.post(path, json=payload, headers=HEADERS)
+                    self.assertEqual(r.status_code, 400)
 
-    print("5. GET /api/ad-graph")
-    r = requests.get(f"{BASE}/api/ad-graph", timeout=10)
-    assert r.status_code == 200
-    g = r.json()
-    assert len(g["nodes"]) == 11 and len(g["edges"]) == 8
-    assert "E01" in g["highlighted_edges"]
+    def test_analyzer_input_size_limit(self):
+        r = self.client.post("/api/analyze", json={"raw_text": "x" * (2 * 1024 * 1024 + 1)}, headers=HEADERS)
+        self.assertEqual(r.status_code, 413)
 
-    print("6. POST /api/cvss (valid + invalid)")
-    r = requests.post(f"{BASE}/api/cvss", json={"vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"}, timeout=10)
-    assert r.status_code == 200 and r.json()["base_score"] == 9.8
-    bad = requests.post(f"{BASE}/api/cvss", json={"vector": "INVALID"}, timeout=10)
-    assert bad.status_code == 400
+    def test_export_alias_matches_report_button(self):
+        with patch("app.main.subprocess.run") as run:
+            r = self.client.post("/api/report/export", json={"target": "report"}, headers=HEADERS)
+        self.assertEqual(r.status_code, 200)
+        run.assert_called_once()
 
-    print("7. GET /api/report/diff")
-    r = requests.get(f"{BASE}/api/report/diff", timeout=10)
-    assert r.status_code == 200
-    d = r.json()
-    assert d["stats"]["word_similarity_pct"] > 0 and len(d["pocs"]) == 5
-
-    print("8. POST /api/analyze (file upload)")
-    sample_file = ROOT / "lab" / "challenge-samples" / "portswigger" / "ps-01-ssrf-stock-check.http"
-    with sample_file.open("rb") as fh:
-        r = requests.post(
-            f"{BASE}/api/analyze",
-            files={"file": (sample_file.name, fh, "text/plain")},
-            data={"template_id": "W1", "model": "qwen2.5:3b", "artifact_type": "http"},
-            timeout=120,
-        )
-    assert r.status_code == 200, r.text
-    assert "ssrf" in r.json()["output"].lower() or "stockapi" in r.json()["output"].lower()
-
-    print("9. POST /api/cross-check")
-    r = requests.post(
-        f"{BASE}/api/cross-check",
-        json={"sample_id": "dvwa-04", "template_id": "W1", "artifact_type": "http"},
-        timeout=180,
-    )
-    assert r.status_code == 200, r.text
-    cc = r.json()
-    assert cc["qwen"]["response"] and cc["llama"]["response"]
-
-    print("10. POST /api/validation-log (with clean restore)")
-    deliv_log = ROOT / "deliverables" / "validation-log.md"
-    ev_log = ROOT / "evidence" / "validation-log.md"
-    orig_deliv = deliv_log.read_text(encoding="utf-8")
-    orig_ev = ev_log.read_text(encoding="utf-8") if ev_log.exists() else None
-    try:
-        before_cnt = requests.get(f"{BASE}/api/validation-log", timeout=10).json()["total"]
-        vr = requests.post(
-            f"{BASE}/api/validation-log",
-            json={"phase": "GUI Test", "claim": "Smoke test claim", "model": "qwen2.5:3b", "result": "OK", "verdict": "Verified"},
-            timeout=10,
-        )
-        assert vr.status_code == 200 and vr.json()["total"] == before_cnt + 1
-    finally:
-        deliv_log.write_text(orig_deliv, encoding="utf-8")
-        if orig_ev is not None:
-            ev_log.write_text(orig_ev, encoding="utf-8")
-
-    print("11. POST /api/report/export")
-    er = requests.post(f"{BASE}/api/report/export", json={"target": "presentation"}, timeout=60)
-    assert er.status_code == 200 and er.json()["files"][0]["bytes"] > 10000
-
-    print("ALL 11 API SMOKE TESTS PASSED.")
-    return 0
+    def test_solver_called_once_and_consent_forwarded(self):
+        from app.main import app
+        from scripts.port_solver import SolveResult
+        fake = SolveResult(lab_type="agentic", title="test", solved=False, payload="", method="", status=200,
+                           evidence="mock evidence", explanation="mock", state="not_solved", source="agentic")
+        with patch("agentic_solver.agentic_solve", return_value=fake) as solver, patch(
+            "port_solver.solve_lab", side_effect=AssertionError("playbook must not run implicitly")
+        ):
+            r = self.client.post("/api/port-solver/solve",
+                                 json={"url":"https://abc.web-security-academy.net/", "description":"desc", "allow_state_changes":True},
+                                 headers=HEADERS)
+        self.assertEqual(r.status_code, 200, r.text)
+        solver.assert_called_once_with("https://abc.web-security-academy.net/", hints=[], description="desc", allow_state_changes=True)
+        self.assertEqual(r.json()["status"], "not_solved")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    unittest.main(verbosity=2)

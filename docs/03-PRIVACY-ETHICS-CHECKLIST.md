@@ -9,9 +9,10 @@
 
 | # | Rule | Why |
 |---|---|---|
-| P1 | All LLM inference is **local** (Ollama/LM Studio/GPT4All). No cloud API keys configured. | Test data must never leave the machine |
-| P2 | No telemetry/cloud sync enabled in any AI runtime where avoidable. | Same reason |
-| P3 | `evidence/` and `reports/` are **gitignored** — raw tool output, screenshots and reports are never pushed to GitHub. | Repos are public |
+| P1 | Inference uses the local Ollama loopback endpoint by default; verify its configured URL before each run. | Keep prompts local |
+| P2 | PortSwigger import/inspection makes outbound HTTPS requests to the selected PortSwigger host; this is not offline/air-gapped mode. | Make network behavior explicit |
+| P3 | The Port Solver actively sends bounded requests only to the selected per-user `*.web-security-academy.net` instance. State-changing POST requests require the GUI consent checkbox. | Authorized training scope only |
+| P4 | `evidence/` and `reports/` are gitignored by default; review any deliverable explicitly added to Git before pushing. | Avoid accidental data disclosure |
 | P4 | Before pushing any file to GitHub: search it for usernames, IPs, hostnames, domains, screenshots. | Accidental leak prevention |
 | P5 | Redact real personal data from **any** artifact that could be shared (this project uses no real data at all). | Compliance |
 
@@ -19,10 +20,10 @@
 
 | Data type | May enter prompts? | May enter repo? | May enter evidence/ (gitignored)? |
 |---|---|---|---|
-| Lab VM data (lab.local, DIVA, DVWA…) | ✅ yes | ✅ yes (configs) | ✅ yes |
-| Own screenshots of lab | ✅ yes | ❌ no | ✅ yes |
-| Real client data | ❌ **never** | ❌ never | ❌ never (out of scope) |
-| API keys / passwords (lab) | ✅ yes (fake ones) | ❌ no | ✅ yes |
+| Synthetic lab configuration (no credentials) | ✅ yes | ✅ sanitized config only | ✅ if needed |
+| Lab HTTP captures/screenshots | ✅ minimize/redact first | only sanitized examples | local, gitignored by default |
+| Real client or third-party data | ❌ never in this project | ❌ never | ❌ never |
+| Passwords, session cookies, API keys (even lab-generated) | use only when strictly needed; do not send to the model unless redacted/necessary | ❌ never | ❌ never; redact before logging |
 
 ---
 
@@ -44,11 +45,12 @@
 ## 3. Pre-session checklist (tick each working session)
 
 ```
-[ ] P1 — Ollama/LM Studio/GPT4All in local mode (no cloud models selected)
-[ ] P4 — nothing sensitive is queued for commit (git status reviewed)
-[ ] E1 — every target about to be touched is a lab VM I own
-[ ] E4 — plan reviewed: each AI suggestion has a human review step
-[ ] Snapshots: vulnerable-ad / clean-kali exist and are current
+[ ] P1 — Ollama URL is local (`127.0.0.1`/`localhost`); no cloud inference selected
+[ ] P2 — if importing/inspecting a lab URL, it is an intended PortSwigger Academy host
+[ ] P3 — if solving actively, I own/was assigned this instance and understand POST/state changes
+[ ] P4 — `git status` reviewed; staged files contain no secrets or unrelated lab data
+[ ] E1 — every active target is an authorized training instance or self-owned lab
+[ ] E4 — inspect the proposed action and evidence; use consent only for this lab run
 ```
 
 ## 4. Pre-push checklist (before `git push`)

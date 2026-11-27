@@ -60,14 +60,15 @@ def parse_prompt_template(path: Path) -> Dict[str, str]:
 
 
 def find_template(identifier: str) -> Path:
-    p = Path(identifier)
-    if p.exists():
-        return p
+    """Resolve a prompt by ID/name only; callers cannot pass arbitrary file paths."""
     candidates = sorted(PROMPTS_DIR.rglob("*.md"))
-    ident_low = identifier.lower()
+    ident_low = Path(identifier.strip()).name.lower()
     for c in candidates:
+        resolved = c.resolve()
+        if not resolved.is_relative_to(PROMPTS_DIR.resolve()):
+            continue
         if c.stem.lower() == ident_low or c.stem.lower().startswith(ident_low + "-"):
-            return c
+            return resolved
     raise FileNotFoundError(f"Prompt template not found for identifier: {identifier!r}")
 
 
@@ -98,10 +99,10 @@ def call_ollama(
     prompt: str,
     system_prompt: str = "",
     base_url: str = DEFAULT_OLLAMA_URL,
-    temperature: float = 0.2,
-    num_ctx: int = 4096,
-    num_predict: int = 1024,
-    timeout: int = 180,
+    temperature: float = 0.15,
+    num_ctx: int = 6144,
+    num_predict: int = 2048,
+    timeout: int = 240,
 ) -> Dict:
     url = validate_local_url(base_url)
     payload = {
