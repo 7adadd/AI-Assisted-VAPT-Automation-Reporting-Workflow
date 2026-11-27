@@ -30,6 +30,9 @@ class LocalAPITests(unittest.TestCase):
         health = self.client.get("/api/health").json()
         self.assertEqual(health["privacy_mode"], "127.0.0.1-only")
         self.assertGreaterEqual(health["stats"]["total_prompts"], 24)
+        self.assertEqual(health["stats"]["total_findings"], 9)
+        self.assertEqual(health["stats"]["validation"]["total"], 24)
+        self.assertEqual(health["stats"]["validation"]["verified"], 13)
         self.assertTrue(any(p["id"] == "PS1" for p in self.client.get("/api/prompts").json()["items"]))
         self.assertEqual(len(self.client.get("/api/challenges").json()["challenges"]), 12)
 

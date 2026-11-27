@@ -23,7 +23,7 @@ SECTIONS = [
     ("overview", ROOT / "README.md", "1", "Project Overview", "Purpose, repository structure, quickstart"),
     ("plan", ROOT / "docs" / "00-PROJECT-PLAN.md", "2", "Master Project Plan", "Four-week day-by-day schedule and twelve-day fast track"),
     ("lab", ROOT / "docs" / "01-LAB-SETUP-GUIDE.md", "3", "AI Lab Setup Guide", "WSL low-disk lab, runtimes, models, targets"),
-    ("prompts", ROOT / "docs" / "02-PROMPT-LIBRARY.md", "4", "Prompt Library", "Template standard and twenty-three starter prompts"),
+    ("prompts", ROOT / "docs" / "02-PROMPT-LIBRARY.md", "4", "Prompt Library", "Template standard and twenty-four starter prompts (including PS1)"),
     ("ethics", ROOT / "docs" / "03-PRIVACY-ETHICS-CHECKLIST.md", "5", "Privacy and Ethics Checklist", "Mandatory gate before any testing"),
     ("validation", ROOT / "docs" / "04-VALIDATION-FRAMEWORK.md", "6", "Validation Framework", "Anti-hallucination procedure and accuracy metrics"),
 ]
@@ -202,22 +202,22 @@ def build_html() -> None:
   </div>
 
   <div class="cover-foot">
-    <span>Version 1.0 &nbsp;&middot;&nbsp; November 2026</span>
+    <span>AegisVAPT v1.1 &nbsp;&middot;&nbsp; November 2026</span>
     <span>github.com/7adadd/AI-Assisted-VAPT-Automation-Reporting-Workflow</span>
   </div>
 </div>
 
 <div class="toc">
   <h1>Contents</h1>
-  <div class="lead">AI-Assisted VAPT Automation and Reporting Workflow &mdash; project documentation</div>
+  <div class="lead">AI-Assisted VAPT Automation and Reporting Workflow (AegisVAPT) &mdash; project documentation</div>
   <table class="toc">{''.join(toc_rows)}</table>
 
   <div class="control">
     <h3>Document Control</h3>
     <dl class="control-l">
-      <div class="row"><dt>Project</dt><dd>AI-Assisted VAPT Automation and Reporting Workflow (DEPI Project 5)</dd></div>
+      <div class="row"><dt>Project</dt><dd>AegisVAPT — AI-Assisted VAPT Automation and Reporting Workflow (DEPI Project 5)</dd></div>
       <div class="row"><dt>Owner</dt><dd>@7adadd</dd></div>
-      <div class="row"><dt>Status</dt><dd>Active &mdash; Week 1 execution</dd></div>
+      <div class="row"><dt>Status</dt><dd>Completed &mdash; Final Delivery (Weeks 1&ndash;4 + AegisVAPT Workbench)</dd></div>
       <div class="row"><dt>Review cycle</dt><dd>Updated at each weekly checkpoint</dd></div>
       <div class="row"><dt>Classification</dt><dd>Educational &mdash; self-owned lab environment only</dd></div>
     </dl>

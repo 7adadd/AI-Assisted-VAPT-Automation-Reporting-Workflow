@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!--VAPT_SESSION_TOKEN-->
-  <title>VAPT Studio — DEPI Project 5</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d8f7f'/%3E%3Ctext x='16' y='23' font-family='Segoe UI,Arial' font-size='19' font-weight='700' fill='white' text-anchor='middle'%3EV%3C/text%3E%3C/svg%3E" />
+  <title>AegisVAPT — Local AI Security Workbench (DEPI Project 5)</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='1' stop-color='%230a7367'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='15' fill='%230c1a2c'/%3E%3Cpath d='M32 9 13 17v15c0 12.2 8 22.8 19 26.5 11-3.7 19-14.3 19-26.5V17L32 9z' fill='url(%23g)'/%3E%3Cpath d='M32 14.5 18 20.5v11.3c0 9.1 5.8 17 14 20 8.2-3 14-10.9 14-20V20.5L32 14.5z' fill='%230c1a2c' fill-opacity='.82'/%3E%3Cpath d='m25.5 32.5 4.8 4.8 9.2-9.8' fill='none' stroke='%235eead4' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/static/styles.css" />
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/cytoscape.min.js"></script>
@@ -16,42 +16,124 @@
   <!-- ============ SIDEBAR ============ -->
   <aside class="sidebar">
     <div class="brand">
-      <div class="mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3z"/><path d="m9 12 2 2 4-4"/>
-        </svg>
+      <div class="brand-row">
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="aegisShell" x1="10" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#2dd4bf"/>
+                <stop offset="55%" stop-color="#0d9488"/>
+                <stop offset="100%" stop-color="#0b5550"/>
+              </linearGradient>
+              <linearGradient id="aegisCore" x1="32" y1="13" x2="32" y2="52" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#132a46"/>
+                <stop offset="100%" stop-color="#081424"/>
+              </linearGradient>
+            </defs>
+            <path d="M32 6 11 14.8v16.4c0 13.4 8.8 25 21 29 12.2-4 21-15.6 21-29V14.8L32 6z" fill="url(#aegisShell)"/>
+            <path d="M32 11.2 15.8 18v13c0 10.6 6.9 19.8 16.2 23.2 9.3-3.4 16.2-12.6 16.2-23.2V18L32 11.2z" fill="url(#aegisCore)" stroke="#5eead4" stroke-opacity=".35" stroke-width="1"/>
+            <path d="M22 25h6l4-5 4 5h6" stroke="#2dd4bf" stroke-opacity=".45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="22" cy="25" r="1.8" fill="#5eead4" fill-opacity=".75"/>
+            <circle cx="42" cy="25" r="1.8" fill="#5eead4" fill-opacity=".75"/>
+            <path d="m24.5 34.2 5.2 5.2 10.2-11" stroke="#5eead4" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="brand-meta">
+          <div class="brand-title-row">
+            <h1>AegisVAPT</h1>
+            <span class="ver-pill">v1.0</span>
+          </div>
+          <div class="sub">Local AI Security Workbench</div>
+        </div>
       </div>
-      <h1>VAPT Studio</h1>
-      <div class="sub">DEPI Project 5 &middot; local AI</div>
     </div>
 
-    <nav class="nav">
+    <nav class="nav" aria-label="Primary sections">
       <div class="nav-label">Workspace</div>
+
       <button class="nav-btn active" data-view="analyzer" aria-current="page">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 3 14 9-14 9V3z"/></svg>
-        Analyzer
+        <span class="nav-ico" aria-hidden="true">
+          <!-- Packet & Vulnerability Lens -->
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="2.5" y="3.5" width="14" height="15" rx="2.5" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M5.5 7.5h6M5.5 10.5h4.5M5.5 13.5h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="15.5" cy="14.5" r="4.5" fill="#0c1a2c" fill-opacity=".85" stroke="currentColor" stroke-width="1.7"/>
+            <circle cx="15.5" cy="14.5" r="1.6" fill="currentColor"/>
+            <path d="M18.8 17.8 21.5 20.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="nav-txt">Analyzer</span>
       </button>
+
       <button class="nav-btn" data-view="solver">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/><circle cx="12" cy="12" r="4"/></svg>
-        Port Solver
+        <span class="nav-ico" aria-hidden="true">
+          <!-- Precision Target Scope & Verified Bolt -->
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="8.5" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-opacity=".75" stroke-width="1.4"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="m12.8 8.3-2.6 4h2.4l-1.4 3.4 3.2-4.3h-2.3l.7-3.1z" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="nav-txt">Port Solver</span>
       </button>
+
       <button class="nav-btn" data-view="dashboard">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
-        Dashboard
+        <span class="nav-ico" aria-hidden="true">
+          <!-- Telemetry Monitor Console -->
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="2.5" y="3.5" width="19" height="14" rx="2.5" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="6" y="10.5" width="2.6" height="4.5" rx=".8" fill="currentColor"/>
+            <rect x="10.7" y="7.8" width="2.6" height="7.2" rx=".8" fill="currentColor" fill-opacity=".8"/>
+            <rect x="15.4" y="5.8" width="2.6" height="9.2" rx=".8" fill="currentColor"/>
+            <path d="M8.5 20.5h7M12 17.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="nav-txt">Dashboard</span>
       </button>
+
       <button class="nav-btn" data-view="graph">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="m6.7 7.5 4 8.5M17.3 7.5l-4 8.5M7 6h10"/></svg>
-        AD Attack Paths
+        <span class="nav-ico" aria-hidden="true">
+          <!-- Active Directory Attack Graph -->
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M7.2 7.2 15.8 11M7.2 16.8 15.8 13" stroke="currentColor" stroke-opacity=".75" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="5.5" cy="6.5" r="3" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="5.5" cy="17.5" r="3" fill="currentColor" fill-opacity=".22" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M18.2 7.5 14 9.3v3.3c0 2.7 1.8 5 4.2 5.9 2.4-.9 4.2-3.2 4.2-5.9V9.3l-4.2-1.8z" fill="currentColor" fill-opacity=".3" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="18.2" cy="12" r="1.3" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="nav-txt">AD Attack Paths</span>
       </button>
+
       <button class="nav-btn" data-view="reports">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>
-        Reports &amp; Export
+        <span class="nav-ico" aria-hidden="true">
+          <!-- Signed Audit Dossier & Seal -->
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M13 2.5H6.5A2.5 2.5 0 0 0 4 5v14a2.5 2.5 0 0 0 2.5 2.5h11A2.5 2.5 0 0 0 20 19V9.5L13 2.5z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M13 2.5V9.5h7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M7.5 12.5h5.5M7.5 16h3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="16.5" cy="16.5" r="3.8" fill="#0c1a2c" fill-opacity=".9" stroke="currentColor" stroke-width="1.5"/>
+            <path d="m14.9 16.5 1.1 1.1 2.2-2.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="nav-txt">Reports &amp; Export</span>
       </button>
     </nav>
 
     <div class="side-foot">
-      <div class="pill"><span class="dot" id="dot-ollama"></span><span id="txt-ollama">Checking Ollama&hellip;</span></div>
-      <div class="side-note">Inference uses local Ollama. Lab inspection and the consented solver send HTTPS only to the selected PortSwigger training instance.</div>
+      <div class="runtime-card">
+        <div class="pill"><span class="dot" id="dot-ollama"></span><span id="txt-ollama">Checking Ollama&hellip;</span></div>
+        <div class="model-chips">
+          <span class="chip">qwen2.5:3b</span>
+          <span class="chip">llama3.2:3b</span>
+        </div>
+        <div class="side-lock">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.6"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>
+          <span>127.0.0.1 &middot; Local Inference</span>
+        </div>
+      </div>
+      <div class="side-note">Inference runs offline on Ollama. Lab inspect &amp; consented solver contact only your chosen PortSwigger host.</div>
     </div>
   </aside>
 
@@ -62,10 +144,10 @@
     <section class="view active" id="view-analyzer">
       <div class="page-head">
         <div>
-          <h2>Analyzer</h2>
-          <p>Give it real evidence, choose what to do with it, and get an answer grounded in observed lines.</p>
+          <h2>Artifact Analyzer</h2>
+          <p>Feed real scan logs, HTTP captures, BloodHound JSON, or decompiled Java — get citation-grounded triage from local AI.</p>
         </div>
-        <span class="page-tag">3 steps</span>
+        <span class="page-tag">DEPI Project 5 &middot; 3 Steps</span>
       </div>
 
       <!-- STEP 1 -->
@@ -74,7 +156,7 @@
           <div class="step-num">1</div>
           <div class="step-body">
             <div class="step-title">Add evidence</div>
-            <div class="step-sub">Paste a capture, upload a file, or point it at your PortSwigger lab instance.</div>
+            <div class="step-sub">Paste a capture, upload a file, or inspect a passive PortSwigger lab instance.</div>
 
             <div class="seg" id="src-seg" role="group" aria-label="Evidence source">
               <button class="on" data-src="paste" aria-pressed="true">Paste text</button>
@@ -116,39 +198,39 @@
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-body">
-            <div class="step-title">Choose the review</div>
-            <div class="step-sub">Each card is a tuned prompt template.</div>
+            <div class="step-title">Choose the review template</div>
+            <div class="step-sub">Each card activates a grounded, citation-enforced prompt from the 24-template library.</div>
 
             <div class="review-grid" id="review-grid" role="group" aria-label="Analysis prompt">
               <button class="review-card on" data-tpl="W1" aria-pressed="true">
-                <div class="rc-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Explain &amp; find weaknesses</div>
+                <div class="rc-t"><span class="rc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span>Explain &amp; find weaknesses</div>
                 <div class="rc-d">Breaks down the request and ranks likely vulnerability classes.</div>
-                <div class="rc-code">W1</div>
+                <div class="rc-code">W1 &middot; Web</div>
               </button>
               <button class="review-card" data-tpl="PS1" aria-pressed="false">
-                <div class="rc-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>PortSwigger lab</div>
+                <div class="rc-t"><span class="rc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg></span>PortSwigger lab</div>
                 <div class="rc-d">Surfaces, weak point, verification plan, fix and CVSS.</div>
-                <div class="rc-code">PS1</div>
+                <div class="rc-code">PS1 &middot; Academy</div>
               </button>
               <button class="review-card" data-tpl="AD1" aria-pressed="false">
-                <div class="rc-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6h6a4 4 0 0 1 4 4v6"/></svg>AD attack path</div>
+                <div class="rc-t"><span class="rc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6h6a4 4 0 0 1 4 4v6"/></svg></span>AD attack path</div>
                 <div class="rc-d">Explains BloodHound edges to Domain Admin.</div>
-                <div class="rc-code">AD1</div>
+                <div class="rc-code">AD1 &middot; Active Directory</div>
               </button>
               <button class="review-card" data-tpl="M1" aria-pressed="false">
-                <div class="rc-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>Mobile code review</div>
+                <div class="rc-t"><span class="rc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg></span>Mobile code review</div>
                 <div class="rc-d">Secrets, weak crypto and exported components.</div>
-                <div class="rc-code">M1</div>
+                <div class="rc-code">M1 &middot; Android / DIVA</div>
               </button>
               <button class="review-card" data-tpl="RP1" aria-pressed="false">
-                <div class="rc-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6v20h12V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>Report-ready finding</div>
+                <div class="rc-t"><span class="rc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6v20h12V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg></span>Report-ready finding</div>
                 <div class="rc-d">Validated notes into a finding with CVSS and fix.</div>
-                <div class="rc-code">RP1</div>
+                <div class="rc-code">RP1 &middot; Reporting</div>
               </button>
               <button class="review-card" data-tpl="R1" aria-pressed="false">
-                <div class="rc-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 19h18M5 15l4-5 4 3 6-8"/></svg>Recon triage</div>
+                <div class="rc-t"><span class="rc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 19h18M5 15l4-5 4 3 6-8"/></svg></span>Recon triage</div>
                 <div class="rc-d">Nmap scan into ranked next steps.</div>
-                <div class="rc-code">R1</div>
+                <div class="rc-code">R1 &middot; Reconnaissance</div>
               </button>
             </div>
 
@@ -193,15 +275,14 @@
       <div class="page-head">
         <div>
           <h2>Port Solver</h2>
-          <p>Paste your lab instance URL. It sends the exact requests the lab needs, then verifies the result from the real response.</p>
+          <p>Grounded Observe &rarr; Reason &rarr; Act &rarr; Verify assistant for your own PortSwigger Academy lab instance.</p>
         </div>
-        <span class="page-tag">live training lab</span>
+        <span class="page-tag">Consented Training Lab</span>
       </div>
 
       <div class="card">
         <div class="url-note" style="margin-bottom:12px;">
-          Paste the lab's own URL. You can also paste its <b>description</b> below — the model reads it to
-          understand what the lab is asking for, then explains the real solution steps.
+          Paste the lab's own URL. You can also paste its <b>description</b> below &mdash; the model reads observed responses to propose or execute bounded verification steps.
         </div>
         <input type="text" id="solve-url" placeholder="https://YOUR-ID.web-security-academy.net/" />
         <textarea id="solve-desc" style="min-height:110px; margin-top:10px; font-family:inherit;"
@@ -231,21 +312,37 @@
     <!-- ---------- DASHBOARD ---------- -->
     <section class="view" id="view-dashboard">
       <div class="page-head">
-        <div><h2>Dashboard</h2><p>Local benchmark results and validation metrics from this run.</p></div>
-        <span class="page-tag">local only</span>
+        <div><h2>Performance &amp; Validation Dashboard</h2><p>Local benchmark telemetry, human-in-the-loop audit metrics, and the 12-item passive challenge suite.</p></div>
+        <span class="page-tag">Local Telemetry</span>
       </div>
       <div class="kpi-grid">
-        <div class="kpi"><div class="k">Prompt templates</div><div class="v" id="kpi-prompts">&mdash;</div><div class="h">5 phases</div></div>
-        <div class="kpi"><div class="k">Challenges</div><div class="v" id="kpi-challenges">&mdash;</div><div class="h">DVWA + PortSwigger</div></div>
-        <div class="kpi good"><div class="k">Verified accuracy</div><div class="v" id="kpi-accuracy">&mdash;</div><div class="h" id="kpi-usable">usable: &mdash;</div></div>
-        <div class="kpi bad"><div class="k">Hallucination rate</div><div class="v" id="kpi-hallucination">&mdash;</div><div class="h" id="kpi-claims">claims: &mdash;</div></div>
+        <div class="kpi accent-teal">
+          <div class="kpi-top"><div class="k">Prompt templates</div><span class="kpi-badge teal">5 phases</span></div>
+          <div class="v" id="kpi-prompts">&mdash;</div>
+          <div class="h">Grounded YAML/MD library</div>
+        </div>
+        <div class="kpi accent-blue">
+          <div class="kpi-top"><div class="k">Challenges</div><span class="kpi-badge blue">Lab suite</span></div>
+          <div class="v" id="kpi-challenges">&mdash;</div>
+          <div class="h">6 DVWA + 6 PortSwigger</div>
+        </div>
+        <div class="kpi good">
+          <div class="kpi-top"><div class="k">Verified accuracy</div><span class="kpi-badge ok" id="kpi-usable">usable: &mdash;</span></div>
+          <div class="v" id="kpi-accuracy">&mdash;</div>
+          <div class="h">Strict first-pass accuracy</div>
+        </div>
+        <div class="kpi bad">
+          <div class="kpi-top"><div class="k">Hallucination rate</div><span class="kpi-badge bad" id="kpi-claims">claims: &mdash;</span></div>
+          <div class="v" id="kpi-hallucination">&mdash;</div>
+          <div class="h">Rejected by L1&ndash;L4 gates</div>
+        </div>
       </div>
       <div class="split">
-        <div class="card"><h3>Generation speed <span class="hint">tokens / sec</span></h3><div class="chart-box"><canvas id="chart-tps"></canvas></div></div>
-        <div class="card"><h3>Grounding adherence <span class="hint">out of 5</span></h3><div class="chart-box"><canvas id="chart-score"></canvas></div></div>
+        <div class="card"><h3>Generation speed <span class="hint">tokens / sec (higher is faster)</span></h3><div class="chart-box"><canvas id="chart-tps"></canvas></div></div>
+        <div class="card"><h3>Grounding adherence <span class="hint">score out of 5</span></h3><div class="chart-box"><canvas id="chart-score"></canvas></div></div>
       </div>
       <div class="card">
-        <h3>Challenge suite <span class="hint">passive artifact analysis</span></h3>
+        <h3>Challenge suite <span class="hint">12 passive HTTP captures evaluated on qwen2.5:3b</span></h3>
         <div style="overflow-x:auto;">
           <table class="data">
             <thead><tr><th>Suite</th><th>Challenge</th><th>Parameter</th><th>Expected class</th><th>Status</th><th></th></tr></thead>
@@ -257,14 +354,25 @@
 
     <!-- ---------- GRAPH ---------- -->
     <section class="view" id="view-graph">
-      <div class="page-head"><div><h2>AD Attack Paths</h2><p>LAB.LOCAL graph with BFS shortest paths. Click a node for details.</p></div><span class="page-tag">ground truth</span></div>
-      <div class="card"><h3>Graph <span class="hint" id="graph-hint"></span></h3><div id="cy" style="height:520px; background:var(--paper); border-radius:8px;"></div></div>
-      <div class="card"><h3>Selected node</h3><div id="node-info" class="muted">Click a node in the graph.</div></div>
+      <div class="page-head"><div><h2>Active Directory Attack Paths</h2><p>LAB.LOCAL BloodHound graph solved deterministically with BFS shortest paths. Click any node to inspect details.</p></div><span class="page-tag">BFS Ground Truth</span></div>
+      <div class="card">
+        <h3>
+          <span>Attack Graph</span>
+          <span class="graph-legend">
+            <span class="legend-item"><span class="swatch path-node"></span>Path node</span>
+            <span class="legend-item"><span class="swatch path-edge"></span>Shortest path edge</span>
+            <span class="legend-item"><span class="swatch normal-node"></span>Uninvolved node</span>
+            <span class="hint" id="graph-hint" style="margin-left:6px;"></span>
+          </span>
+        </h3>
+        <div id="cy" style="height:520px; background:var(--paper); border:1px solid var(--line); border-radius:10px;"></div>
+      </div>
+      <div class="card"><h3>Selected node</h3><div id="node-info" class="muted">Click a node in the graph to view its type, path membership, and edges.</div></div>
     </section>
 
     <!-- ---------- REPORTS ---------- -->
     <section class="view" id="view-reports">
-      <div class="page-head"><div><h2>Reports &amp; Export</h2><p>CVSS calculator, AI-vs-human diff and one-click export.</p></div><span class="page-tag">deliverables</span></div>
+      <div class="page-head"><div><h2>Reports &amp; Export Studio</h2><p>Deterministic CVSS v3.1 calculator, AI-draft vs human-edited diff metrics, PoC evidence, and one-click export.</p></div><span class="page-tag">Deliverables</span></div>
       <div class="split">
         <div class="card">
           <h3>CVSS 3.1 calculator</h3>
@@ -272,17 +380,17 @@
           <div class="actions" style="margin-top:10px;"><button class="btn primary sm" id="btn-cvss">Compute</button><span id="cvss-out" class="muted"></span></div>
         </div>
         <div class="card">
-          <h3>Export</h3>
+          <h3>Export deliverables</h3>
           <div class="actions">
             <button class="btn sm" data-export="human_report" rel="noopener noreferrer">VAPT report</button>
             <button class="btn sm" data-export="sop">SOP</button>
-            <button class="btn sm" data-export="presentation">Deck</button>
+            <button class="btn sm" data-export="presentation">Deck (.pptx)</button>
           </div>
           <div id="export-out" class="muted" style="margin-top:10px;"></div>
         </div>
       </div>
-      <div class="card"><h3>AI draft vs human-edited <span class="hint" id="diff-hint"></span></h3><div id="diff-out" class="muted">Loading&hellip;</div></div>
-      <div class="card"><h3>PoC evidence</h3><div id="poc-gallery" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;"></div></div>
+      <div class="card"><h3>AI draft vs human-edited diff <span class="hint" id="diff-hint"></span></h3><div id="diff-out" class="muted">Loading&hellip;</div></div>
+      <div class="card"><h3>Verified PoC evidence <span class="hint">DVWA live exploitation screenshots</span></h3><div id="poc-gallery" class="poc-grid"></div></div>
     </section>
 
   </main>

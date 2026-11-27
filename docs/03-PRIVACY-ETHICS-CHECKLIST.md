@@ -13,8 +13,8 @@
 | P2 | PortSwigger import/inspection makes outbound HTTPS requests to the selected PortSwigger host; this is not offline/air-gapped mode. | Make network behavior explicit |
 | P3 | The Port Solver actively sends bounded requests only to the selected per-user `*.web-security-academy.net` instance. State-changing POST requests require the GUI consent checkbox. | Authorized training scope only |
 | P4 | `evidence/` and `reports/` are gitignored by default; review any deliverable explicitly added to Git before pushing. | Avoid accidental data disclosure |
-| P4 | Before pushing any file to GitHub: search it for usernames, IPs, hostnames, domains, screenshots. | Accidental leak prevention |
-| P5 | Redact real personal data from **any** artifact that could be shared (this project uses no real data at all). | Compliance |
+| P5 | Before pushing any file to GitHub: search it for usernames, IPs, hostnames, domains, screenshots. | Accidental leak prevention |
+| P6 | Redact real personal data from **any** artifact that could be shared (this project uses no real data at all). | Compliance |
 
 **Data handling matrix**
 

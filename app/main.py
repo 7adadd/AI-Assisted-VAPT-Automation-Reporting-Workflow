@@ -113,7 +113,7 @@ def _count_report_findings() -> int:
     if not report.exists():
         return 0
     text = report.read_text(encoding="utf-8", errors="replace")
-    return len(re.findall(r"(?im)^#{1,3}\\s+(?:Finding\\s+)?(?:\\d+|[A-Z]{1,4}-\\d+)\\b", text))
+    return len(re.findall(r"(?im)^#{1,3}\s+(?:Finding\s+)?[A-Z]{1,4}-\d+\b", text))
 
 
 def _parse_validation_log() -> Dict[str, Any]:
@@ -130,12 +130,16 @@ def _parse_validation_log() -> Dict[str, Any]:
             if len(cols) < 8 or cols[0] in ("ID", "---") or set(cols[0]) <= {"-"}:
                 continue
             verdict = cols[7]
-            if "✅" in verdict or "Verified" in verdict:
-                verified += 1
-                norm = "Verified"
-            elif "❌" in verdict or "Hallucination" in verdict:
+            low = verdict.lower()
+            if "❌" in verdict or "hallucin" in low or "reject" in low:
                 hallucinated += 1
                 norm = "Hallucination"
+            elif "⚠️" in verdict or "partial" in low or "correct" in low:
+                partial += 1
+                norm = "Corrected"
+            elif "✅" in verdict or "verif" in low:
+                verified += 1
+                norm = "Verified"
             else:
                 partial += 1
                 norm = "Corrected"

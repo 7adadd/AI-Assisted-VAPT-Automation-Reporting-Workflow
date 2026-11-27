@@ -1,5 +1,5 @@
 /* ============================================================
-   VAPT Studio — localhost-only controller
+   AegisVAPT — Localhost-Only Controller
    Talks exclusively to the FastAPI backend on 127.0.0.1:8000
    ============================================================ */
 const state = {
@@ -66,7 +66,7 @@ function renderMarkdown(src) {
       continue;
     }
     closeList();
-    if (/^\s*\|/.test(line)) continue;           // tables are rare in model output
+    if (/^\s*\|/.test(line)) continue;
     html += `<p>${mdInline(line)}</p>`;
   }
   if (inCode && codeBuf.length) html += `<pre><code>${esc(codeBuf.join('\n'))}</code></pre>`;
@@ -88,28 +88,38 @@ async function api(path, opts = {}) {
   return data;
 }
 
+function switchView(viewName) {
+  $$('.nav-btn').forEach(b => {
+    const isMatch = b.dataset.view === viewName;
+    b.classList.toggle('active', isMatch);
+    if (isMatch) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + viewName));
+  if (viewName === 'dashboard') loadDashboard();
+  if (viewName === 'graph') loadGraph();
+  if (viewName === 'reports') loadReports();
+}
+
 /* ---------- navigation ---------- */
 $$('.nav-btn').forEach(btn => btn.addEventListener('click', () => {
-  $$('.nav-btn').forEach(b => { b.classList.remove('active'); b.removeAttribute('aria-current'); });
-  $$('.view').forEach(v => v.classList.remove('active'));
-  btn.classList.add('active');
-  btn.setAttribute('aria-current', 'page');
-  $('#view-' + btn.dataset.view).classList.add('active');
-  if (btn.dataset.view === 'dashboard') loadDashboard();
-  if (btn.dataset.view === 'graph') loadGraph();
-  if (btn.dataset.view === 'reports') loadReports();
+  switchView(btn.dataset.view);
 }));
 
 /* ---------- step 1: source mode ---------- */
-$$('#src-seg button').forEach(b => b.addEventListener('click', () => {
-  $$('#src-seg button').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-pressed', 'false'); });
-  b.classList.add('on');
-  b.setAttribute('aria-pressed', 'true');
-  state.srcMode = b.dataset.src;
-  $('#src-paste').style.display   = state.srcMode === 'paste'  ? '' : 'none';
-  $('#src-upload').style.display  = state.srcMode === 'upload' ? '' : 'none';
-  $('#src-url').style.display     = state.srcMode === 'url'    ? '' : 'none';
-}));
+function setSourceMode(mode) {
+  state.srcMode = mode;
+  $$('#src-seg button').forEach(x => {
+    const on = x.dataset.src === mode;
+    x.classList.toggle('on', on);
+    x.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  $('#src-paste').style.display  = mode === 'paste'  ? '' : 'none';
+  $('#src-upload').style.display = mode === 'upload' ? '' : 'none';
+  $('#src-url').style.display    = mode === 'url'    ? '' : 'none';
+}
+
+$$('#src-seg button').forEach(b => b.addEventListener('click', () => setSourceMode(b.dataset.src)));
 
 const dropZone = $('#drop-zone');
 dropZone.addEventListener('keydown', ev => {
@@ -131,12 +141,16 @@ $('#in-file').addEventListener('change', ev => {
 });
 
 /* ---------- step 2: review type ---------- */
-$$('#review-grid .review-card').forEach(c => c.addEventListener('click', () => {
-  $$('#review-grid .review-card').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-pressed', 'false'); });
-  c.classList.add('on');
-  c.setAttribute('aria-pressed', 'true');
-  state.template = c.dataset.tpl;
-}));
+function selectTemplate(tpl) {
+  state.template = tpl;
+  $$('#review-grid .review-card').forEach(x => {
+    const on = x.dataset.tpl === tpl;
+    x.classList.toggle('on', on);
+    x.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+$$('#review-grid .review-card').forEach(c => c.addEventListener('click', () => selectTemplate(c.dataset.tpl)));
 
 /* ---------- inspect a real PortSwigger lab instance (passive GET) ---------- */
 $('#btn-import').addEventListener('click', async () => {
@@ -151,16 +165,12 @@ $('#btn-import').addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
     });
-    // Real observed attack surface — not a description the model could guess from.
     $('#in-text').value = r.context;
     $('#result-hint').textContent = '';
     dropZone.innerHTML = `<b>${esc(r.origin)}</b><br/><span class="muted">${r.pages_fetched} pages &middot; ${r.query_params.length} params &middot; ${r.form_count} forms</span>`;
     state.uploadedFile = null;
-    $$('#src-seg button').forEach(x => x.classList.toggle('on', x.dataset.src === 'paste'));
-    $('#src-paste').style.display = ''; $('#src-upload').style.display = 'none'; $('#src-url').style.display = 'none';
-    state.srcMode = 'paste';
-    $$('#review-grid .review-card').forEach(x => x.classList.toggle('on', x.dataset.tpl === 'PS1'));
-    state.template = 'PS1';
+    setSourceMode('paste');
+    selectTemplate('PS1');
     $('#result-card').classList.remove('show');
   } catch (e) {
     alert('Inspection failed: ' + e.message);
@@ -185,9 +195,9 @@ async function runAnalysis(cross) {
     return;
   }
   state.lastRun = null;
-    $('#verdict-row').style.display = 'none';
-    $('#result-hint').textContent = 'Preparing analysis…';
-    $('#result-a').textContent = '';
+  $('#verdict-row').style.display = 'none';
+  $('#result-hint').textContent = 'Preparing analysis…';
+  $('#result-a').textContent = '';
   $('#result-b').textContent = '';
   $('#result-meta').textContent = '';
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Running…';
@@ -197,7 +207,6 @@ async function runAnalysis(cross) {
   $('#result-b').innerHTML = '';
 
   try {
-    let body;
     if (state.srcMode === 'upload' && state.uploadedFile) {
       const fd = new FormData();
       fd.append('file', state.uploadedFile);
@@ -208,7 +217,7 @@ async function runAnalysis(cross) {
       paintResult(r, cross);
     } else {
       const sampleSel = $('#in-text').value.trim();
-      body = {
+      const body = {
         raw_text: sampleSel,
         filename: 'pasted.txt',
         artifact_type: 'auto',
@@ -276,18 +285,19 @@ $$('#verdict-row .btn').forEach(b => b.addEventListener('click', async () => {
         phase: 'GUI Arena',
         claim: (out || '').slice(0, 220).replace(/\s+/g, ' '),
         model: isCross ? 'qwen2.5:3b' : state.lastRun.model,
-        source: 'GUI Analyzer',
+        source: 'AegisVAPT Analyzer',
         check: 'Human Analyst Review',
         result: verdict,
         verdict,
       }),
     });
     b.closest('.actions').querySelector('.muted').textContent = `Logged as ${verdict}`;
+    loadHealthBadge();
   } catch (e) { alert('Could not log verdict: ' + e.message); }
 }));
 
-/* ---------- dashboard ---------- */
-async function loadDashboard() {
+/* ---------- health badge + KPI summary (safe when dashboard is hidden) ---------- */
+async function loadHealthBadge() {
   try {
     const h = await api('/api/health');
     $('#dot-ollama').className = 'dot ' + (h.ollama_connected ? 'ok' : 'bad');
@@ -309,39 +319,51 @@ async function loadDashboard() {
     $('#kpi-prompts').textContent = '—';
     $('#kpi-challenges').textContent = '—';
   }
+}
 
-  try {
-    const b = await api('/api/benchmarks');
-    const tasks = b.tasks || [];
-    const labels = tasks.map(t => t.task_id);
-    if (labels.length && !state.charts.tps) {
-      state.charts.tps = new Chart($('#chart-tps'), {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [
-            { label: 'qwen2.5:3b', data: tasks.map(t => t.qwen_gen_tps), backgroundColor: '#2f9e8f' },
-            { label: 'llama3.2:3b', data: tasks.map(t => t.llama_gen_tps), backgroundColor: '#3b4a5e' },
-          ],
-        },
-        options: baseChartOpts('tokens / sec'),
-      });
-      state.charts.score = new Chart($('#chart-score'), {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [
-            { label: 'qwen2.5:3b', data: tasks.map(t => t.qwen_score), backgroundColor: '#2f9e8f' },
-            { label: 'llama3.2:3b', data: tasks.map(t => t.llama_score), backgroundColor: '#3b4a5e' },
-          ],
-        },
-        options: baseChartOpts('score / 5'),
-      });
+/* ---------- dashboard ---------- */
+async function loadDashboard() {
+  await loadHealthBadge();
+
+  if ($('#view-dashboard').classList.contains('active')) {
+    try {
+      const b = await api('/api/benchmarks');
+      const tasks = b.tasks || [];
+      const labels = tasks.map(t => t.task_id);
+      if (labels.length && !state.charts.tps) {
+        state.charts.tps = new Chart($('#chart-tps'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: 'qwen2.5:3b', data: tasks.map(t => t.qwen_gen_tps), backgroundColor: '#0d9488', borderRadius: 4 },
+              { label: 'llama3.2:3b', data: tasks.map(t => t.llama_gen_tps), backgroundColor: '#1e3a5f', borderRadius: 4 },
+            ],
+          },
+          options: baseChartOpts('tokens / sec'),
+        });
+        state.charts.score = new Chart($('#chart-score'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: 'qwen2.5:3b', data: tasks.map(t => t.qwen_score), backgroundColor: '#0d9488', borderRadius: 4 },
+              { label: 'llama3.2:3b', data: tasks.map(t => t.llama_score), backgroundColor: '#1e3a5f', borderRadius: 4 },
+            ],
+          },
+          options: baseChartOpts('score / 5', 5),
+        });
+      } else if (state.charts.tps && state.charts.score) {
+        state.charts.tps.resize();
+        state.charts.tps.update();
+        state.charts.score.resize();
+        state.charts.score.update();
+      }
+    } catch (e) {
+      $('#chart-tps').parentElement.innerHTML = `<div class="empty">Benchmark data unavailable: ${esc(e.message)}<br/><button class="btn sm" data-retry-dashboard>Retry</button></div>`;
+      $('#chart-score').parentElement.innerHTML = `<div class="empty">Benchmark data unavailable</div>`;
+      document.querySelectorAll('[data-retry-dashboard]').forEach(btn => btn.addEventListener('click', loadDashboard, {once:true}));
     }
-  } catch (e) {
-    $('#chart-tps').parentElement.innerHTML = `<div class="empty">Benchmark data unavailable: ${esc(e.message)}<br/><button class="btn sm" data-retry-dashboard>Retry</button></div>`;
-    $('#chart-score').parentElement.innerHTML = `<div class="empty">Benchmark data unavailable</div>`;
-    document.querySelectorAll('[data-retry-dashboard]').forEach(b => b.addEventListener('click', loadDashboard, {once:true}));
   }
 
   try {
@@ -351,12 +373,13 @@ async function loadDashboard() {
     if (!state.challenges.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">No challenges</td></tr>'; return; }
     tb.innerHTML = state.challenges.map(ch => {
       const ev = ch.evaluation;
-      const ok = ev && (ev.correct || ev.status === 'correct');
+      const ok = ev && (ev.passed === true || ev.correct === true || ev.status === 'correct');
+      const tps = ev && ev.gen_tps ? ` &middot; ${Number(ev.gen_tps).toFixed(0)} t/s` : '';
       const badge = ev
-        ? `<span class="tag ${ok ? 'ok' : 'warn'}">${ok ? 'correct' : 'review'}</span>`
+        ? `<span class="tag ${ok ? 'ok' : 'warn'}">${ok ? 'passed' + tps : 'review'}</span>`
         : '<span class="tag mute">not run</span>';
       return `<tr>
-        <td>${esc(ch.suite)}</td>
+        <td><b>${esc(ch.suite)}</b></td>
         <td>${esc(ch.name)}</td>
         <td><code>${esc(ch.target_param || '')}</code></td>
         <td>${esc(ch.expected_vuln || '')}</td>
@@ -364,69 +387,149 @@ async function loadDashboard() {
         <td><button class="btn sm" data-load="${esc(ch.id)}">Load</button></td>
       </tr>`;
     }).join('');
-    tb.querySelectorAll('[data-load]').forEach(b => b.addEventListener('click', () => {
-      const ch = state.challenges.find(x => x.id === b.dataset.load);
+    tb.querySelectorAll('[data-load]').forEach(btn => btn.addEventListener('click', () => {
+      const ch = state.challenges.find(x => x.id === btn.dataset.load);
       if (!ch) return;
-      $$('.nav-btn').forEach(x => x.classList.remove('active'));
-      $$('.view').forEach(v => v.classList.remove('active'));
-      $('.nav-btn[data-view="analyzer"]').classList.add('active');
-      $('#view-analyzer').classList.add('active');
+      switchView('analyzer');
+      setSourceMode('paste');
+      selectTemplate(ch.recommended_template || 'W1');
       $('#in-text').value = ch.sample_text || '';
+      $('#result-card').classList.add('show');
       $('#result-hint').textContent = `Loaded challenge: ${ch.name}`;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      $('#result-meta').textContent = '';
+      $('#result-a').innerHTML = `<div class="muted">Challenge <b>${esc(ch.name)}</b> loaded into Step 1. Click <b>Run analysis</b> to execute local inference.</div>`;
+      $('#result-b').style.display = 'none';
+      $('#verdict-row').style.display = 'none';
+      $('.main').scrollTo({ top: 0, behavior: 'smooth' });
     }));
   } catch (e) {
     $('#challenges-tbody').innerHTML = `<tr><td colspan="6" class="empty">Could not load challenges: ${esc(e.message)}</td></tr>`;
   }
 }
 
-function baseChartOpts(label) {
+function baseChartOpts(label, maxVal) {
   return {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { labels: { color: '#4a5b6d', boxWidth: 12 } } },
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    plugins: { legend: { labels: { color: '#47586b', boxWidth: 12, font: { weight: '600' } } } },
     scales: {
-      x: { ticks: { color: '#68798b', font: { size: 10 } }, grid: { color: '#e3e9f0' } },
-      y: { beginAtZero: true, ticks: { color: '#68798b' }, grid: { color: '#e3e9f0' }, title: { display: true, text: label, color: '#68798b' } },
+      x: { ticks: { color: '#5b6c80', font: { size: 11, weight: '600' } }, grid: { display: false } },
+      y: {
+        beginAtZero: true,
+        ...(maxVal ? { suggestedMax: maxVal } : {}),
+        ticks: { color: '#5b6c80' },
+        grid: { color: '#e2e8f0' },
+        title: { display: true, text: label, color: '#5b6c80', font: { size: 11 } },
+      },
     },
   };
 }
 
 /* ---------- AD graph ---------- */
 async function loadGraph() {
-  if (state.cy) return;
+  if (state.cy) {
+    state.cy.resize();
+    state.cy.fit(undefined, 36);
+    return;
+  }
   try {
     const g = await api('/api/ad-graph');
-    const nodes = (g.nodes || []).map(n => ({
-      data: { id: n.id, label: n.label || n.name || n.id, kind: n.kind || n.type || '' },
-    }));
-    const edges = (g.edges || []).map((e, i) => ({
-      data: { id: e.id || `e${i}`, source: e.source, target: e.target, label: e.kind || e.type || '' },
-    }));
     const hl = new Set(g.highlighted_nodes || []);
     const hlEdges = new Set(g.highlighted_edges || []);
-    edges.forEach(e => { e.data.path = hlEdges.has(e.data.id); });
-    nodes.forEach(n => { n.data.path = hl.has(n.data.id); });
+    const nodes = (g.nodes || []).map(n => ({
+      data: {
+        id: n.id,
+        label: n.label || n.name || n.id,
+        kind: n.kind || n.type || 'Entity',
+        path: hl.has(n.id),
+      },
+    }));
+    const edges = (g.edges || []).map((e, i) => {
+      const id = e.id || `e${i}`;
+      return {
+        data: {
+          id,
+          source: e.source,
+          target: e.target,
+          label: e.label || e.right || e.relationship || e.kind || e.type || '',
+          path: hlEdges.has(id),
+        },
+      };
+    });
     state.cy = cytoscape({
       container: $('#cy'),
       elements: [...nodes, ...edges],
       style: [
         { selector: 'node', style: {
-          'background-color': '#ffffff', 'border-width': 2, 'border-color': '#8fa0b2',
-          'label': 'data(label)', 'color': '#1c2b3a', 'font-size': 10,
-          'text-wrap': 'wrap', 'text-max-width': 100, 'text-valign': 'bottom', 'text-margin-y': 5,
-          'width': 34, 'height': 34 } },
-        { selector: 'node[path]', style: { 'background-color': '#d9f1eb', 'border-color': '#0d8f7f', 'border-width': 3 } },
+          'background-color': '#ffffff',
+          'border-width': 2,
+          'border-color': '#94a3b8',
+          'label': 'data(label)',
+          'color': '#1e293b',
+          'font-size': 10,
+          'font-weight': 600,
+          'text-wrap': 'wrap',
+          'text-max-width': 130,
+          'text-valign': 'bottom',
+          'text-margin-y': 6,
+          'text-background-color': '#f2f6fa',
+          'text-background-opacity': 0.85,
+          'text-background-padding': '2px',
+          'width': 32,
+          'height': 32 } },
+        { selector: 'node[?path]', style: {
+          'background-color': '#d1fae5',
+          'border-color': '#0d9488',
+          'border-width': 3,
+          'width': 36,
+          'height': 36 } },
         { selector: 'edge', style: {
-          'width': 1.2, 'line-color': '#cfd9e4', 'target-arrow-color': '#cfd9e4',
-          'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } },
-        { selector: 'edge[path]', style: { 'width': 3, 'line-color': '#df8d26', 'target-arrow-color': '#df8d26', 'z-index': 10 } },
+          'width': 1.6,
+          'line-color': '#cbd5e1',
+          'target-arrow-color': '#94a3b8',
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier',
+          'label': 'data(label)',
+          'font-size': 9,
+          'color': '#475569',
+          'text-background-color': '#f2f6fa',
+          'text-background-opacity': 0.92,
+          'text-background-padding': '2px',
+          'text-rotation': 'autorotate' } },
+        { selector: 'edge[?path]', style: {
+          'width': 3.2,
+          'line-color': '#d97706',
+          'target-arrow-color': '#d97706',
+          'color': '#92400e',
+          'font-weight': 700,
+          'z-index': 10 } },
       ],
-      layout: { name: 'cose', animate: false, padding: 40, nodeRepulsion: 7000, idealEdgeLength: 120 },
+      layout: {
+        name: 'breadthfirst',
+        directed: true,
+        animate: false,
+        padding: 38,
+        spacingFactor: 1.55,
+        avoidOverlap: true,
+      },
     });
-    $('#graph-hint').textContent = `${(g.nodes || []).length} nodes · ${(g.edges || []).length} edges · orange = shortest paths`;
+    state.cy.fit(undefined, 36);
+    const pathCount = Object.values(g.ground_truth?.paths_to_highvalue || {}).filter(p => Array.isArray(p) && p.length).length;
+    $('#graph-hint').textContent = `${nodes.length} nodes · ${edges.length} edges · ${pathCount} shortest paths`;
     state.cy.on('tap', 'node', ev => {
-      const d = ev.target.data();
-      $('#node-info').innerHTML = `<b>${esc(d.label)}</b><br/><span class="muted">id: ${esc(d.id)}${d.kind ? ' · ' + esc(d.kind) : ''}</span>`;
+      const node = ev.target;
+      const d = node.data();
+      const outEdges = node.outgoers('edge').map(ed => `${ed.data('label')} -> ${ed.target().data('label')}`);
+      const inEdges = node.incomers('edge').map(ed => `${ed.source().data('label')} -> ${ed.data('label')}`);
+      const pathBadge = d.path ? '<span class="tag ok">On BFS Shortest Path</span>' : '<span class="tag mute">Not on shortest path</span>';
+      $('#node-info').innerHTML =
+        `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">` +
+        `<b style="color:var(--ink);font-size:14px;">${esc(d.label)}</b>` +
+        `<span class="tag warn">${esc(d.kind)}</span>${pathBadge}</div>` +
+        `<div class="muted">ID: <code>${esc(d.id)}</code></div>` +
+        (inEdges.length ? `<div class="muted" style="margin-top:6px;"><b>Inbound:</b> ${esc(inEdges.join(' | '))}</div>` : '') +
+        (outEdges.length ? `<div class="muted" style="margin-top:4px;"><b>Outbound:</b> ${esc(outEdges.join(' | '))}</div>` : '');
     });
   } catch (e) {
     $('#graph-hint').textContent = 'unavailable';
@@ -472,16 +575,20 @@ async function loadReports() {
     $('#diff-hint').textContent = `${s.word_similarity_pct ?? 0}% word similarity`;
     const rows = [
       ['AI draft words', s.ai_words], ['Human-edited words', s.human_words],
-      ['Words added', s.added_words], ['Words removed', s.removed_words],
-      ['Replaced (AI side)', s.replaced_ai_words], ['Replaced (human side)', s.replaced_human_words],
-      ['Line similarity', (s.line_similarity_pct ?? 0) + '%'],
+      ['Words inserted (net)', s.added_words], ['Words deleted', s.removed_words],
+      ['Replaced (AI -> Human)', `${s.replaced_ai_words ?? '—'} -> ${s.replaced_human_words ?? '—'}`],
+      ['Line-level similarity', (s.line_similarity_pct ?? 0) + '%'],
     ];
-    const pocs = (d.pocs || []).map(p =>
-      `<figure style="margin:0;"><img src="${p.url}" style="width:100%;border-radius:8px;border:1px solid var(--line);" /><figcaption class="muted" style="font-size:11px;margin-top:4px;">${esc(p.name)}</figcaption></figure>`
-    ).join('');
+    const diffSnippet = (d.unified_diff_lines || []).slice(0, 60).join('\n');
     $('#diff-out').innerHTML =
-      `<table class="data" style="margin-bottom:14px;">${rows.map(r => `<tr><td class="muted">${r[0]}</td><td><b>${r[1] ?? '—'}</b></td></tr>`).join('')}</table>` +
-      (pocs ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;">${pocs}</div>` : '<div class="empty">No PoC images</div>');
+      `<table class="data">${rows.map(r => `<tr><td class="muted">${r[0]}</td><td><b>${r[1] ?? '—'}</b></td></tr>`).join('')}</table>` +
+      (diffSnippet ? `<details style="margin-top:12px;"><summary class="muted" style="cursor:pointer;font-weight:600;">Show unified diff excerpt</summary><pre style="max-height:240px;overflow:auto;margin-top:8px;background:var(--paper);padding:11px;border-radius:8px;border:1px solid var(--line);font-size:11.5px;color:var(--ink);">${esc(diffSnippet)}</pre></details>` : '');
+
+    const pocs = (d.pocs || []).map(p =>
+      `<a class="poc-card" href="${p.url}" target="_blank" rel="noopener noreferrer">` +
+      `<img src="${p.url}" alt="${esc(p.name)}" />` +
+      `<div class="poc-cap">${esc(p.name)}</div></a>`
+    ).join('');
     $('#poc-gallery').innerHTML = pocs || '<div class="empty">No PoC images</div>';
   } catch (e) {
     $('#diff-out').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
@@ -503,7 +610,7 @@ $('#btn-solve').addEventListener('click', async () => {
   const old = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Solving…';
   $('#solve-result').classList.add('show');
-    $('#solve-hint').textContent = allowStateChanges ? 'Running bounded lab actions…' : 'Passive observation only; generating proposed steps…';
+  $('#solve-hint').textContent = allowStateChanges ? 'Running bounded lab actions…' : 'Passive observation only; generating proposed steps…';
   try {
     const r = await api('/api/port-solver/solve', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, description, allow_state_changes: allowStateChanges }),
@@ -564,4 +671,4 @@ $('#btn-solve').addEventListener('click', async () => {
 });
 
 /* ---------- boot ---------- */
-loadDashboard();
+loadHealthBadge();

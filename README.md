@@ -80,9 +80,10 @@ AI-Assisted-VAPT-Automation-Reporting-Workflow/
 | **Week 4 AI Draft vs Final** | [`deliverables/VAPT-Report-Human-Edited.pdf`](deliverables/VAPT-Report-Human-Edited.pdf) | Human-edited report; CVSS vectors are re-computed by `calc_cvss.py` |
 | **Hallucination Audit** | [`deliverables/week4-hallucination-check-and-diff.md`](deliverables/week4-hallucination-check-and-diff.md) | Recorded validation outcomes; challenge evaluator signals are heuristic unless explicitly human-adjudicated |
 | **Reusable SOP** | [`deliverables/REUSABLE-VAPT-AI-SOP.pdf`](deliverables/REUSABLE-VAPT-AI-SOP.pdf) | End-to-end repeatable workflow SOP |
-| **Presentation** | [`deliverables/DEPI-Project5-Presentation.pptx`](deliverables/DEPI-Project5-Presentation.pptx) | 12-slide defense deck with measured benchmark chart & demo script |
-| **VAPT Studio GUI** | [`run_gui.py`](run_gui.py) | Localhost-only analyzer / Port Solver / dashboard / graph / report GUI with session-token hardening |
+| **Presentation** | [`deliverables/DEPI-Project5-Presentation.pptx`](deliverables/DEPI-Project5-Presentation.pptx) | 15-slide defense deck covering Weeks 1–4, AegisVAPT GUI, 12-challenge suite & Port Solver |
+| **AegisVAPT Workbench** | [`run_gui.py`](run_gui.py) | Localhost-only analyzer / Port Solver / dashboard / graph / report GUI with session-token hardening |
 | **Challenge Suite Eval** | [`deliverables/challenge-evaluation-results.md`](deliverables/challenge-evaluation-results.md) | 12/12 passive diagnoses across DVWA + PortSwigger patterns |
+| **Defense & Walkthrough Guide** | [`deliverables/PROJECT-WALKTHROUGH-AND-DEFENSE-GUIDE.pdf`](deliverables/PROJECT-WALKTHROUGH-AND-DEFENSE-GUIDE.pdf) | Complete Arabic walkthrough of Weeks 1–4, post-plan additions, live demo script & 12 Q&A cards |
 
 ## Documentation Map
 
@@ -108,7 +109,7 @@ AI-Assisted-VAPT-Automation-Reporting-Workflow/
 ```powershell
 # 1. Create a virtual environment and install dependencies
 python -m venv .venv
-.venv\\Scripts\\Activate.ps1
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
 # 2. Confirm local Ollama and models
@@ -118,7 +119,7 @@ ollama list   # expected: llama3.2:3b and qwen2.5:3b
 python -I -m unittest discover -s tests -p "test_solver_unit.py" -v
 python -I -m unittest discover -s tests -p "test_gui_api.py" -v
 
-# 4. Start the localhost GUI in this terminal
+# 4. Start the localhost AegisVAPT GUI in this terminal
 python -I run_gui.py
 ```
 

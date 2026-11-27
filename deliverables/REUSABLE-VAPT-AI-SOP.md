@@ -31,8 +31,8 @@ This Standard Operating Procedure (SOP) defines a **repeatable, privacy-first, h
 | L4  HUMAN VALIDATION GATE                                             |
 |     L1 Data-Verified | L2 Lab-Executed | L3 Cross-Model | L4 QA       |
 +-----------------------------------------------------------------------+
-| L3  VERSIONED PROMPT LIBRARY (23 templates in prompts/<phase>/)       |
-|     7-field standard + mandatory Grounding Rules + UNKNOWN fallback   |
+| L3  VERSIONED PROMPT LIBRARY (24 templates in prompts/<phase>/)       |
+|     7-field standard + PS1 + Grounding Rules + UNKNOWN fallback       |
 +-----------------------------------------------------------------------+
 | L2  DETERMINISTIC INGEST ADAPTERS (scripts/ingest/*.py)               |
 |     Nmap XML | Enum text | BloodHound JSON (+BFS) | HTTP | jadx/Java  |
@@ -125,6 +125,14 @@ Before running any scan or prompt:
      --docx deliverables/VAPT-Report-Human-Edited.docx \
      --title "VAPT Assessment Report (Human-Edited Final)"
    ```
+
+### 4.1 AegisVAPT Local Web Workbench & Consented Lab Solver
+
+Operators may also drive the entire workflow through **AegisVAPT** (`python run_gui.py`, bound strictly to `http://127.0.0.1:8000` with a per-launch `X-VAPT-Session` token and `Origin`/`Host` validation):
+
+1. **Artifact Analyzer & Cross-Model Arena:** Upload or paste captures up to `2 MiB`, run any prompt (`W1`, `PS1`, `AD1`, `M1`, `RP1`, `R1`), or run `--cross-check` side-by-side (`qwen2.5:3b` vs `llama3.2:3b`) and log human verdicts (`Verified`, `Corrected`, `Hallucination`) straight into `deliverables/validation-log.md`.
+2. **Passive Lab Surface Inspector (`lab_inspect.py`):** Performs bounded read-only `GET` inspection strictly on an operator-supplied `*.web-security-academy.net` URL, blocking private IPs/localhost/cloud metadata SSRF targets and off-host redirects via `safe_lab_http.py`.
+3. **Consented Agentic Port Solver (`agentic_solver.py` + `port_solver.py`):** Runs an evidence-grounded `Observe -> Reason -> Act -> Verify` loop (`ENCODE_XML`, bounded `GET` probes). State-changing `POST` requests stay disabled unless the operator ticks the explicit GUI consent checkbox; official lab completion is distinguished cleanly from unconfirmed `attempted` or `not_solved` states.
 
 ---
 
